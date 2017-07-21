@@ -283,6 +283,19 @@ struct LSHConstructionParameters {
   /// The value -1 indicates that no feature hashing is performed.
   ///
   int_fast32_t feature_hashing_dimension = -1;
+  template <class Archive>
+  void serialize(Archive &ar, const unsigned int version){
+      ar & dimension;
+      ar & lsh_family;
+      ar & distance_function;
+      ar & k;
+      ar & l;
+      ar & storage_hash_table;
+      ar & num_setup_threads;
+      ar & seed;
+      ar & last_cp_dimension;
+      ar & num_rotations;
+  }
 };
 
 ///
