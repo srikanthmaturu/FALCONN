@@ -52,7 +52,7 @@ FOREACH(line ${exp0.lines})
     ADD_EXECUTABLE(${exec} src/tf_idf_index/index.cpp)
     TARGET_LINK_LIBRARIES(${exec} ${Boost_LIBRARIES})
     SET_PROPERTY(TARGET ${exec} PROPERTY COMPILE_DEFINITIONS
-            INDEX_NAME=${index_name}
+            INDEX_NAME="${index_name}"
             INDEX_TYPE=${index_type}
             NGRAM_LENGTH=${NGRAM_LENGTH}
             THRESHOLD=${THRESHOLD}

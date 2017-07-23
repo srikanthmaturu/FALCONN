@@ -15,6 +15,12 @@
 #include <string.h>
 #include <vector>
 
+#include <falconn/lsh_nn_table.h>
+typedef falconn::DenseVector<float> DenseVectorFloat;
+typedef falconn::SparseVector<float> SparseVectorFloat;
+typedef falconn::DenseVector<double> DenseVectorDouble;
+typedef falconn::SparseVector<double> SparseVectorDouble;
+
 using namespace std;
 
 #define MIN3(a, b, c) ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c)))
@@ -22,12 +28,12 @@ using namespace std;
 std::map<char, int> Mapp = {{'A', 0}, {'C', 1}, {'G', 2}, {'T', 3}, {'N', 4}};
 std::map<int, char> Mapp_r = {{0, 'A'}, {1, 'C'}, {2, 'G'}, {3, 'T'}, {4, 'N'}};
 
-int hamming_distance(std::string& fs, std::string& ss){
-    int hm_distance = 0;
+uint8_t hamming_distance(std::string& fs, std::string& ss){
+    uint8_t hm_distance = 0;
 
     if((fs.length() == ss.length())){
 
-        for(int i = 0; i < fs.length(); i++){
+        for(uint8_t i = 0; i < fs.length(); i++){
             if(!(fs[i] == ss[i])){
                 hm_distance++;
             }

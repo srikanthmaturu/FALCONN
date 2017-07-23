@@ -12,6 +12,7 @@
 #include <fstream>
 #include <typeinfo>
 #include <omp.h>
+#include "tf_idf_falconn_idx_helper.hpp"
 
 
 using namespace std;
@@ -113,7 +114,7 @@ int main(int argc, char* argv[]){
 
         #pragma omp parallel for
         for(uint64_t i=0; i<queries.size(); i++){
-            auto res = tf_idf_falconn_i.match<point_type>(queries[i]);
+            auto res = tf_idf_falconn_i.match(queries[i]);
             uint8_t minED = 100;
             for(size_t j=0; j < res.second.size(); ++j){
                 uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[j]);
