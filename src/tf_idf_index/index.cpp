@@ -69,7 +69,7 @@ int main(int argc, char* argv[]){
     constexpr uint64_t ngram_length = NGRAM_LENGTH;
     constexpr uint64_t threshold = THRESHOLD;
     typedef INDEX_TYPE tf_idf_falconn_index_type;
-    typedef POINT_TYPE point_type;
+    //typedef POINT_TYPE point_type;
     if ( argc < 2 ) {
         cout << "Usage: ./" << argv[0] << " sequences_file [query_file]" << endl;
         return 1;
@@ -105,14 +105,15 @@ int main(int argc, char* argv[]){
         }
 
         tf_idf_falconn_i.load_from_file(idx_file);
-
+        std::cout << "Loaded from file. " << std::endl;
+        tf_idf_falconn_i.construct_table();
         vector<string> queries;
         load_sequences(queries_file, queries);
         vector< vector< pair<string, uint64_t > > > query_results_vector(queries.size());
         ofstream results_file(queries_results_file);
         auto start = timer::now();
 
-        #pragma omp parallel for
+        //#pragma omp parallel for
         for(uint64_t i=0; i<queries.size(); i++){
             auto res = tf_idf_falconn_i.match(queries[i]);
             uint8_t minED = 100;
@@ -127,7 +128,7 @@ int main(int argc, char* argv[]){
                 }
                 query_results_vector[i].push_back(make_pair(res.second[j], edit_distance));
             }
-            cout << "processed query " << i << endl;
+            cout << "Processed query: " << i << " Matches:" << res.first <<endl;
         }
 
         auto stop = timer::now();

@@ -47,7 +47,7 @@ FOREACH(line ${exp0.lines})
     LIST(LENGTH t_params p_size)
     LIST(GET t_params 2 POINT_TYPE)
     STRING(REGEX REPLACE "(.*)<(.*)>" "\\1" point_type ${POINT_TYPE})
-    SET(exec ${index_name}_NGL_${NGRAM_LENGTH}_TH_${threshold}_PT_${point_type})
+    SET(exec ${index_name}_NGL_${NGRAM_LENGTH}_TH_${THRESHOLD}_PT_${point_type})
 
     ADD_EXECUTABLE(${exec} src/tf_idf_index/index.cpp)
     TARGET_LINK_LIBRARIES(${exec} ${Boost_LIBRARIES})

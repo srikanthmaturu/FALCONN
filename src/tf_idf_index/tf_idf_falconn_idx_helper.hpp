@@ -12,7 +12,6 @@
 #include <string>
 #include <math.h>
 #include <unordered_map>
-#include <string.h>
 #include <vector>
 
 #include <falconn/lsh_nn_table.h>
