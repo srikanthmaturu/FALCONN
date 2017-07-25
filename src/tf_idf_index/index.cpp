@@ -1,6 +1,7 @@
 //
 // Created by Srikanth Maturu (srikanthmaturu@outlook.com)on 7/17/2017.
 //
+
 #include "tf_idf_falconn_idx.hpp"
 
 #include <chrono>
@@ -15,13 +16,20 @@
 #include "tf_idf_falconn_idx_helper.hpp"
 
 
+
 using namespace std;
 using namespace tf_idf_falconn_index;
 
 using namespace std::chrono;
 using timer = std::chrono::high_resolution_clock;
 
+#ifdef CUSTOM_BOOST_ENABLED
 const string index_name = INDEX_NAME;
+#else
+const string index_name = "TF_IDF_FALCONN_IDX";
+#endif
+
+#define getindextype(ngl, th) tf_idf_falconn_idx<ngl,th>
 
 template<class duration_type=std::chrono::seconds>
 struct my_timer{
@@ -68,8 +76,13 @@ void load_sequences(string sequences_file, vector<string>& sequences){
 int main(int argc, char* argv[]){
     constexpr uint64_t ngram_length = NGRAM_LENGTH;
     constexpr uint64_t threshold = THRESHOLD;
+#ifdef CUSTOM_BOOST_ENABLED
     typedef INDEX_TYPE tf_idf_falconn_index_type;
-    //typedef POINT_TYPE point_type;
+    typedef POINT_TYPE point_type;
+#else
+    typedef getindextype(NGRAM_LENGTH,THRESHOLD) tf_idf_falconn_index_type;
+#endif
+
     if ( argc < 2 ) {
         cout << "Usage: ./" << argv[0] << " sequences_file [query_file]" << endl;
         return 1;
@@ -83,17 +96,15 @@ int main(int argc, char* argv[]){
     tf_idf_falconn_index_type tf_idf_falconn_i;
 
     {
+#ifdef CUSTOM_BOOST_ENABLED
         ifstream idx_ifs(idx_file);
         if ( !idx_ifs.good()){
             auto index_construction_begin_time = timer::now();
             vector<string> sequences;
             load_sequences(sequences_file, sequences);
             {
-                //            my_timer<> t("index construction");
-//                auto temp = index_type(keys, async);
                 cout<< "Index construction begins"<< endl;
                 auto temp = tf_idf_falconn_index_type(sequences);
-                //            std::cout<<"temp.size()="<<temp.size()<<std::endl;
                 tf_idf_falconn_i = std::move(temp);
             }
             tf_idf_falconn_i.store_to_file(idx_file);
@@ -102,10 +113,15 @@ int main(int argc, char* argv[]){
             cout << "# total_time_to_construct_index_in_us :- " << duration_cast<chrono::microseconds>(index_construction_end_time-index_construction_begin_time).count() << endl;
         } else {
             cout << "Index already exists. Using the existing index." << endl;
+            tf_idf_falconn_i.load_from_file(idx_file);
+            std::cout << "Loaded from file. " << std::endl;
         }
+#else
+        vector<string> sequences;
+        load_sequences(sequences_file, sequences);
+        tf_idf_falconn_i = tf_idf_falconn_index_type(sequences);
+#endif
 
-        tf_idf_falconn_i.load_from_file(idx_file);
-        std::cout << "Loaded from file. " << std::endl;
         tf_idf_falconn_i.construct_table();
         vector<string> queries;
         load_sequences(queries_file, queries);

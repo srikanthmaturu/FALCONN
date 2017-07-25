@@ -15,16 +15,19 @@
 #include <string>
 #include <math.h>
 #include "tf_idf_falconn_idx_helper.hpp"
+
+#if CUSTOM_BOOST_ENABLED
 #include "eigen_boost_serialization.hpp"
 #include <boost/serialization/vector.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#endif
 
 #include <stdlib.h>
 #include <falconn/lsh_nn_table.h>
 
 namespace tf_idf_falconn_index {
-    template<uint64_t ngram_length_t, uint8_t threshold_t, class point_type_t>
+    template<uint64_t ngram_length_t, uint8_t threshold_t, class point_type_t=DenseVectorFloat>
     class tf_idf_falconn_idx {
     public:
         tf_idf_falconn_idx() = default;
@@ -85,6 +88,7 @@ namespace tf_idf_falconn_index {
             table->reset_query_statistics();
         }
 
+        #if CUSTOM_BOOST_ENABLED
         void store_to_file(std::string idx_file) {
             std::ofstream idx_file_ofs(idx_file);
             boost::archive::binary_oarchive oa(idx_file_ofs);
@@ -109,7 +113,7 @@ namespace tf_idf_falconn_index {
             ia >> params;
             ia >> threshold;
         }
-
+        #endif
 
         typename std::enable_if<std::is_same<point_type, DenseVectorFloat>::value,std::pair<uint64_t, std::vector<std::string>>>::type match(std::string query) {
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);

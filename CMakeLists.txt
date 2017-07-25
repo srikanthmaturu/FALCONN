@@ -57,8 +57,16 @@ FOREACH(line ${exp0.lines})
             NGRAM_LENGTH=${NGRAM_LENGTH}
             THRESHOLD=${THRESHOLD}
             POINT_TYPE=${POINT_TYPE}
+            CUSTOM_BOOST_ENABLED=true
+            )
+    SET(nb_exec ${exec}_NONBOOSTVERSION)
+    ADD_EXECUTABLE(${nb_exec} src/tf_idf_index/index.cpp)
+    SET_PROPERTY(TARGET ${nb_exec} PROPERTY COMPILE_DEFINITIONS
+            NGRAM_LENGTH=${NGRAM_LENGTH}
+            THRESHOLD=${THRESHOLD}
             )
     message("Point type ${POINT_TYPE}")
     message("Target ${exec}")
     message("Index Type ${index_type}")
+    message("NON BOOST Target ${nb_exec}")
 ENDFOREACH()
