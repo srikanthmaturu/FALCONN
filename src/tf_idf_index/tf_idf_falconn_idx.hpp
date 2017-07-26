@@ -145,7 +145,7 @@ namespace tf_idf_falconn_index {
             }
             double vec_sq_sum = 0.0;
             for (uint64_t i = 0; i < tf_vec_size; i++) {
-                if (tf_idf_vector[i] > 0) {
+                if (tf_idf_vector[i] > 0 && tdfs[i] > 0) {
                     tf_idf_vector[i] = (1 + log10(tf_idf_vector[i])) * ((log10(1 + (data_size / tdfs[i]))));
                     vec_sq_sum += pow(tf_idf_vector[i], 2);
                 }
