@@ -83,13 +83,14 @@ int main(int argc, char* argv[]){
     typedef getindextype(NGRAM_LENGTH,THRESHOLD) tf_idf_falconn_index_type;
 #endif
 
-    if ( argc < 2 ) {
-        cout << "Usage: ./" << argv[0] << " sequences_file [query_file]" << endl;
+    if ( argc < 3 ) {
+        cout << "Usage: ./" << argv[0] << " sequences_file query_file filter_enabled" << endl;
         return 1;
     }
 
     string sequences_file = argv[1];
     string queries_file = argv[2];
+    string filter_enabled = argv[3];
     cout << "SF: " << sequences_file << " QF:" << queries_file << endl;
     string idx_file = idx_file_trait<ngram_length, threshold>::value(sequences_file);
     string queries_results_file = idx_file_trait<ngram_length, threshold>::value(queries_file) + "_search_results.txt";
@@ -125,39 +126,59 @@ int main(int argc, char* argv[]){
         tf_idf_falconn_i.construct_table();
         vector<string> queries;
         load_sequences(queries_file, queries);
-        vector< vector< pair<string, uint64_t > > > query_results_vector(queries.size());
         ofstream results_file(queries_results_file);
-        auto start = timer::now();
+        if(filter_enabled == "1"){
+            cout << "Filter enabled. Filtering based on edit-distance. Only kmers with least edit-distance to query is outputted." << endl;
+            vector< vector< pair<string, uint64_t > > > query_results_vector(queries.size());
+            auto start = timer::now();
 
-        //#pragma omp parallel for
-        for(uint64_t i=0; i<queries.size(); i++){
-            auto res = tf_idf_falconn_i.match(queries[i]);
-            uint8_t minED = 100;
-            for(size_t j=0; j < res.second.size(); ++j){
-                uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[j]);
-                if(edit_distance < minED){
-                    minED = edit_distance;
-                    query_results_vector[i].clear();
+            //#pragma omp parallel for
+            for(uint64_t i=0; i<queries.size(); i++){
+                auto res = tf_idf_falconn_i.match(queries[i]);
+                uint8_t minED = 100;
+                for(size_t j=0; j < res.second.size(); ++j){
+                    uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[j]);
+                    if(edit_distance < minED){
+                        minED = edit_distance;
+                        query_results_vector[i].clear();
+                    }
+                    else if(edit_distance > minED){
+                        continue;
+                    }
+                    query_results_vector[i].push_back(make_pair(res.second[j], edit_distance));
                 }
-                else if(edit_distance > minED){
-                    continue;
+                cout << "Processed query: " << i << " Matches:" << res.first <<endl;
+            }
+
+            auto stop = timer::now();
+            cout << "# time_per_search_query_in_us = " << duration_cast<chrono::microseconds>(stop-start).count()/(double)queries.size() << endl;
+            cout << "# total_time_for_entire_queries_in_us = " << duration_cast<chrono::microseconds>(stop-start).count() << endl;
+            cout << "saving results in the results file: " << queries_results_file << endl;
+
+            for(uint64_t i=0; i < queries.size(); i++){
+                results_file << ">" << queries[i] << endl;
+                //cout << "Stored results of " << i << endl;
+                for(size_t j=0; j<query_results_vector[i].size(); j++){
+                    results_file << "" << query_results_vector[i][j].first.c_str() << "  " << query_results_vector[i][j].second << endl;
                 }
-                query_results_vector[i].push_back(make_pair(res.second[j], edit_distance));
             }
-            cout << "Processed query: " << i << " Matches:" << res.first <<endl;
-        }
-
-        auto stop = timer::now();
-        cout << "# time_per_search_query_in_us = " << duration_cast<chrono::microseconds>(stop-start).count()/(double)queries.size() << endl;
-        cout << "# total_time_for_entire_queries_in_us = " << duration_cast<chrono::microseconds>(stop-start).count() << endl;
-        cout << "saving results in the results file: " << queries_results_file << endl;
-
-        for(uint64_t i=0; i < queries.size(); i++){
-            results_file << ">" << queries[i] << endl;
-            //cout << "Stored results of " << i << endl;
-            for(size_t j=0; j<query_results_vector[i].size(); j++){
-                results_file << "" << query_results_vector[i][j].first.c_str() << "  " << query_results_vector[i][j].second << endl;
+        }else{
+            cout << "Filter disabled. So, outputting all similar kmers to query based on threshold given to falconn." << endl;
+            auto start = timer::now();
+            //#pragma omp parallel for
+            for(uint64_t i=0; i<queries.size(); i++){
+                results_file << ">" << queries[i] << endl;
+                auto res = tf_idf_falconn_i.match(queries[i]);
+                for(size_t j=0; j < res.second.size(); ++j){
+                    results_file << res.second[j].c_str()  << endl;
+                }
+                cout << "Processed query: " << i << " Matches:" << res.first <<endl;
             }
+
+            auto stop = timer::now();
+            cout << "# time_per_search_query_in_us = " << duration_cast<chrono::microseconds>(stop-start).count()/(double)queries.size() << endl;
+            cout << "# total_time_for_entire_queries_in_us = " << duration_cast<chrono::microseconds>(stop-start).count() << endl;
+            cout << "saved results in the results file: " << queries_results_file << endl;
         }
         results_file.close();
     }
