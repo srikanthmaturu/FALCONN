@@ -59,7 +59,7 @@ FOREACH(line ${exp0.lines})
             POINT_TYPE=${POINT_TYPE}
             CUSTOM_BOOST_ENABLED=true
             )
-    SET(nb_exec ${exec}_NONBOOSTVERSION)
+    SET(nb_exec ${exec}_SV_NONBOOSTVERSION)
     ADD_EXECUTABLE(${nb_exec} src/tf_idf_index/index.cpp)
     SET_PROPERTY(TARGET ${nb_exec} PROPERTY COMPILE_DEFINITIONS
             NGRAM_LENGTH=${NGRAM_LENGTH}
