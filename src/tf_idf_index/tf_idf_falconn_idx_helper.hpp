@@ -16,9 +16,12 @@
 
 #include <falconn/lsh_nn_table.h>
 typedef falconn::DenseVector<float> DenseVectorFloat;
-typedef falconn::SparseVector<float> SparseVectorFloat;
+typedef falconn::SparseVector<float, int32_t> SparseVectorFloat;
 typedef falconn::DenseVector<double> DenseVectorDouble;
 typedef falconn::SparseVector<double> SparseVectorDouble;
+
+typedef std::vector<float> VectorFloat;
+typedef std::vector<double> VectorDouble;
 
 using namespace std;
 

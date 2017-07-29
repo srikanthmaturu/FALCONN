@@ -138,6 +138,9 @@ int main(int argc, char* argv[]){
                 uint8_t minED = 100;
                 for(size_t j=0; j < res.second.size(); ++j){
                     uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[j]);
+                    if(edit_distance == 0){
+                        continue;
+                    }
                     if(edit_distance < minED){
                         minED = edit_distance;
                         query_results_vector[i].clear();

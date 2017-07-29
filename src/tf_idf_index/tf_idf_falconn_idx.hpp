@@ -19,6 +19,7 @@
 #if CUSTOM_BOOST_ENABLED
 #include "eigen_boost_serialization.hpp"
 #include <boost/serialization/vector.hpp>
+#include <boost/serialization/utility.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #endif
@@ -27,7 +28,7 @@
 #include <falconn/lsh_nn_table.h>
 
 namespace tf_idf_falconn_index {
-    template<uint64_t ngram_length_t, uint8_t threshold_t, class point_type_t=DenseVectorFloat>
+    template<uint64_t ngram_length_t, uint8_t threshold_t, class point_type_t=SparseVectorFloat>
     class tf_idf_falconn_idx {
     public:
         tf_idf_falconn_idx() = default;
@@ -47,6 +48,7 @@ namespace tf_idf_falconn_index {
             params.lsh_family = falconn::LSHFamily::CrossPolytope;
             params.l = 50;
             params.distance_function = falconn::DistanceFunction::EuclideanSquared;
+            params.feature_hashing_dimension = 64;
             falconn::compute_number_of_hash_functions<point_type>(18, &params);
             params.num_rotations = 1;
             // we want to use all the available threads to set up
@@ -73,7 +75,7 @@ namespace tf_idf_falconn_index {
 
         std::vector<std::string> original_data;
         uint64_t ngram_length = ngram_length_t;
-        std::vector<uint64_t> tdfs;
+        //std::vector<uint64_t> tdfs;
         std::map<char, int> a_map = {{'A', 0},
                                      {'C', 1},
                                      {'G', 2},
@@ -93,7 +95,7 @@ namespace tf_idf_falconn_index {
             std::ofstream idx_file_ofs(idx_file);
             boost::archive::binary_oarchive oa(idx_file_ofs);
             oa << original_data;
-            oa << tdfs;
+            //oa << tdfs;
             oa << dataset;
             oa << center;
             oa << params;
@@ -103,11 +105,11 @@ namespace tf_idf_falconn_index {
         void load_from_file(std::string idx_file) {
             original_data.clear();
             dataset.clear();
-            tdfs.clear();
+            //tdfs.clear();
             std::ifstream idx_file_ifs(idx_file);
             boost::archive::binary_iarchive ia(idx_file_ifs);
             ia >> original_data;
-            ia >> tdfs;
+            //ia >> tdfs;
             ia >> dataset;
             ia >> center;
             ia >> params;
@@ -115,12 +117,11 @@ namespace tf_idf_falconn_index {
         }
         #endif
 
-        typename std::enable_if<std::is_same<point_type, DenseVectorFloat>::value,std::pair<uint64_t, std::vector<std::string>>>::type match(std::string query) {
+        std::pair<uint64_t, std::vector<std::string>> match(std::string query) {
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
             std::cout << std::endl;
             std::vector<int32_t > nearestNeighbours;
             table->find_near_neighbors(query_tf_idf_vector, threshold, &nearestNeighbours);
-            //nearestNeighbours.push_back(table->find_nearest_neighbor(query_tf_idf_vector));
             std::vector<std::string> matches;
             for (auto i:nearestNeighbours) {
                 matches.push_back(original_data[i]);
@@ -128,12 +129,10 @@ namespace tf_idf_falconn_index {
             return std::make_pair(matches.size(), matches);
         }
 
-
-        typename std::enable_if<std::is_same<point_type, DenseVectorFloat>::value, DenseVectorFloat>::type getQuery_tf_idf_vector(std::string query) {
+        point_type getQuery_tf_idf_vector(std::string query) {
             uint64_t tf_vec_size = pow(4, ngram_length);
             uint64_t string_size = query.size();
             uint64_t data_size = dataset.size();
-            DenseVectorFloat point;
             vector<float> tf_idf_vector(tf_vec_size, 0.0);
             for (uint64_t i = 0; i < string_size - ngram_length + 1; i++) {
                 std::string ngram = query.substr(i, ngram_length);
@@ -145,29 +144,31 @@ namespace tf_idf_falconn_index {
             }
             double vec_sq_sum = 0.0;
             for (uint64_t i = 0; i < tf_vec_size; i++) {
-                if (tf_idf_vector[i] > 0 && tdfs[i] > 0) {
-                    tf_idf_vector[i] = (1 + log10(tf_idf_vector[i])) * ((log10(1 + (data_size / tdfs[i]))));
+                if (tf_idf_vector[i] > 0) {
+                    tf_idf_vector[i] = (1 + log10(tf_idf_vector[i]));
+                    // && tdfs[i] > 0
+                    //tf_idf_vector[i] *= ((log10(1 + (data_size / tdfs[i]))));
                     vec_sq_sum += pow(tf_idf_vector[i], 2);
                 }
             }
             vec_sq_sum = pow(vec_sq_sum, 0.5);
-            point.resize(tf_vec_size);
+
             for (uint64_t i = 0; i < tf_vec_size; i++) {
                 tf_idf_vector[i] /= vec_sq_sum;
-                point[i] = tf_idf_vector[i];
                 //std::cout << tf_idf_vector[i] << " \t";
             }
             //std::cout << std::endl;
-            point -= center;
+            point_type point = get_point<point_type>(tf_idf_vector);
+            subtract_center(point);
             return point;
         }
 
-        typename std::enable_if<std::is_same<point_type, DenseVectorFloat>::value,void>::type construct_dataset(std::vector<std::string> &data) {
+       void construct_dataset(std::vector<std::string> &data) {
             uint64_t tf_vec_size = pow(4, ngram_length);
             uint64_t data_size = data.size();
             uint64_t string_size = data[0].size();
-            tdfs.resize(tf_vec_size);
-            vector<vector<float>> tf_idf_vectors(data_size, vector<float>(tf_vec_size, 0));
+            //tdfs.resize(tf_vec_size);
+            vector<VectorFloat> tf_idf_vectors(data_size, VectorFloat(tf_vec_size, 0));
             vector<double> vec_sq_sums(data_size);
             for (uint64_t i = 0; i < data_size; i++) {
                 for (uint64_t j = 0; j < string_size - ngram_length + 1; j++) {
@@ -181,38 +182,53 @@ namespace tf_idf_falconn_index {
                 for (uint64_t j = 0; j < tf_vec_size; j++) {
                     if (tf_idf_vectors[i][j] > 0) {
                         tf_idf_vectors[i][j] = (1 + log10(tf_idf_vectors[i][j]));
-                        tdfs[j]++;
+                        //tdfs[j]++;
                     }
                 }
             }
             for (uint64_t i = 0; i < data_size; i++) {
                 double_t vec_sq_sum = 0.0;
                 for (uint64_t j = 0; j < tf_vec_size; j++) {
-                    if(tdfs[j] > 0){
+                    /*if(tdfs[j] > 0){
                         tf_idf_vectors[i][j] *= (log10(1 + (data_size / tdfs[j])));
-                    }
+                    }*/
                     vec_sq_sum += pow(tf_idf_vectors[i][j], 2);
                 }
                 vec_sq_sum = pow(vec_sq_sum, 0.5);
-                DenseVectorFloat point;
-                point.resize(tf_vec_size);
                 for (uint64_t j = 0; j < tf_vec_size; j++) {
                     tf_idf_vectors[i][j] /= vec_sq_sum;
-                    point[j] = tf_idf_vectors[i][j];
                     //std::cout << tf_idf_vectors[i][j] << " \t";
                 }
                 //std::cout << std::endl;
-                dataset.push_back(point);
+                dataset.push_back(get_point<point_type>(tf_idf_vectors[i]));
             }
+           re_center_dataset<point_type>();
+        }
 
-            std::cout << "Normalizing dataset points." << std::endl;
-
-            for (auto &p : dataset) {
-                p.normalize();
+        template<class T>
+        typename std::enable_if<std::is_same<T, DenseVectorFloat>::value, T>::type get_point(VectorFloat tf_idf_vector){
+            DenseVectorFloat point;
+            point.resize(tf_idf_vector.size());
+            for (uint64_t i = 0; i < tf_idf_vector.size(); i++) {
+                point[i] = tf_idf_vector[i];
             }
+            return point;
+        }
 
-            std::cout << "Done."<< std::endl;
+        template<class T>
+        typename std::enable_if<std::is_same<T, SparseVectorFloat>::value, T>::type get_point(VectorFloat tf_idf_vector){
+            SparseVectorFloat point;
+            point.resize(tf_idf_vector.size());
+            for (int32_t i = 0; i < tf_idf_vector.size(); i++){
+                point[i] = std::make_pair(i, tf_idf_vector[i]);
+            }
+            return point;
+        }
+
+        template<class T>
+        typename std::enable_if<std::is_same<T, DenseVectorFloat>::value, void>::type re_center_dataset(){
             // find the center of mass
+            uint64_t data_size = dataset.size();
             center = dataset[rand()%data_size];
             for (size_t i = 1; i < data_size; ++i) {
                 center += dataset[i];
@@ -226,6 +242,37 @@ namespace tf_idf_falconn_index {
             std::cout << "Done."<<std::endl;
         }
 
+        template<class T>
+        typename std::enable_if<std::is_same<T, SparseVectorFloat>::value, void>::type re_center_dataset(){
+            uint64_t data_size = dataset.size();
+            center = dataset[rand()%data_size];
+            uint64_t vector_size = center.size();
+            for (size_t i = 0; i < data_size; ++i) {
+                for (uint64_t j = 0; j < vector_size; j++){
+                    center[j].second += dataset[i][j].second;
+                }
+            }
+            for (uint64_t i = 0; i < vector_size; i++){
+                center[i].second /= data_size;
+            }
+            std::cout << "Re-centering dataset points." << std::endl;
+            for (size_t i = 0; i < data_size; ++i) {
+                subtract_center(dataset[i]);
+            }
+            std::cout << "Done."<<std::endl;
+        }
+
+        template<class T>
+        typename std::enable_if<std::is_same<T, DenseVectorFloat>::value, void>::type subtract_center(T& point){
+            point -= center;
+        }
+
+        template<class T>
+        typename std::enable_if<std::is_same<T, SparseVectorFloat>::value, void>::type subtract_center(T& point){
+            for (uint64_t i = 0; i < point.size(); i++){
+                point[i].second -= center[i].second;
+            }
+        }
     };
 
 }
