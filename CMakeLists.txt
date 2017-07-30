@@ -43,9 +43,10 @@ FOREACH(line ${exp0.lines})
     STRING(REGEX REPLACE "tf_idf_falconn_idx<(.*)>" "\\1" t_part ${index_type})
     STRING(REGEX REPLACE "," ";" t_params ${t_part})
     LIST(GET t_params 0 NGRAM_LENGTH)
-    LIST(GET t_params 1 THRESHOLD)
+    LIST(GET t_params 1 USE_TDFS)
+    LIST(GET t_params 2 THRESHOLD)
     LIST(LENGTH t_params p_size)
-    LIST(GET t_params 2 POINT_TYPE)
+    LIST(GET t_params 3 POINT_TYPE)
     STRING(REGEX REPLACE "(.*)<(.*)>" "\\1" point_type ${POINT_TYPE})
     SET(exec ${index_name}_NGL_${NGRAM_LENGTH}_TH_${THRESHOLD}_PT_${point_type})
 
@@ -55,6 +56,7 @@ FOREACH(line ${exp0.lines})
             INDEX_NAME="${index_name}"
             INDEX_TYPE=${index_type}
             NGRAM_LENGTH=${NGRAM_LENGTH}
+            USE_TDFS=${USE_TDFS}
             THRESHOLD=${THRESHOLD}
             POINT_TYPE=${POINT_TYPE}
             CUSTOM_BOOST_ENABLED=true
@@ -63,6 +65,7 @@ FOREACH(line ${exp0.lines})
     ADD_EXECUTABLE(${nb_exec} src/tf_idf_index/index.cpp)
     SET_PROPERTY(TARGET ${nb_exec} PROPERTY COMPILE_DEFINITIONS
             NGRAM_LENGTH=${NGRAM_LENGTH}
+            USE_TDFS=${USE_TDFS}
             THRESHOLD=${THRESHOLD}
             )
     message("Point type ${POINT_TYPE}")

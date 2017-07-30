@@ -28,7 +28,7 @@
 #include <falconn/lsh_nn_table.h>
 
 namespace tf_idf_falconn_index {
-    template<uint64_t ngram_length_t, uint8_t threshold_t, class point_type_t=SparseVectorFloat>
+    template<uint64_t ngram_length_t, bool use_tdfs_t, uint8_t threshold_t, class point_type_t=SparseVectorFloat>
     class tf_idf_falconn_idx {
     public:
         tf_idf_falconn_idx() = default;
@@ -48,7 +48,7 @@ namespace tf_idf_falconn_index {
             params.lsh_family = falconn::LSHFamily::CrossPolytope;
             params.l = 50;
             params.distance_function = falconn::DistanceFunction::EuclideanSquared;
-            params.feature_hashing_dimension = 64;
+            params.feature_hashing_dimension = pow(4, ngram_length);
             falconn::compute_number_of_hash_functions<point_type>(18, &params);
             params.num_rotations = 1;
             // we want to use all the available threads to set up
@@ -71,11 +71,12 @@ namespace tf_idf_falconn_index {
         point_type center;
         falconn::LSHConstructionParameters params;
         uint8_t num_probes = 50;
+        bool use_tdfs = use_tdfs_t;
         double_t threshold;
 
         std::vector<std::string> original_data;
         uint64_t ngram_length = ngram_length_t;
-        //std::vector<uint64_t> tdfs;
+        std::vector<uint64_t> tdfs;
         std::map<char, int> a_map = {{'A', 0},
                                      {'C', 1},
                                      {'G', 2},
@@ -95,7 +96,7 @@ namespace tf_idf_falconn_index {
             std::ofstream idx_file_ofs(idx_file);
             boost::archive::binary_oarchive oa(idx_file_ofs);
             oa << original_data;
-            //oa << tdfs;
+            oa << tdfs;
             oa << dataset;
             oa << center;
             oa << params;
@@ -105,11 +106,11 @@ namespace tf_idf_falconn_index {
         void load_from_file(std::string idx_file) {
             original_data.clear();
             dataset.clear();
-            //tdfs.clear();
+            tdfs.clear();
             std::ifstream idx_file_ifs(idx_file);
             boost::archive::binary_iarchive ia(idx_file_ifs);
             ia >> original_data;
-            //ia >> tdfs;
+            ia >> tdfs;
             ia >> dataset;
             ia >> center;
             ia >> params;
@@ -145,9 +146,12 @@ namespace tf_idf_falconn_index {
             double vec_sq_sum = 0.0;
             for (uint64_t i = 0; i < tf_vec_size; i++) {
                 if (tf_idf_vector[i] > 0) {
-                    tf_idf_vector[i] = (1 + log10(tf_idf_vector[i]));
-                    // && tdfs[i] > 0
-                    //tf_idf_vector[i] *= ((log10(1 + (data_size / tdfs[i]))));
+                    if(!use_tdfs){
+                        tf_idf_vector[i] = (1 + log10(tf_idf_vector[i]));
+                    }
+                    else if(tdfs[i] > 0){
+                        tf_idf_vector[i] *= ((log10(1 + (data_size / tdfs[i]))));
+                    }
                     vec_sq_sum += pow(tf_idf_vector[i], 2);
                 }
             }
@@ -167,7 +171,7 @@ namespace tf_idf_falconn_index {
             uint64_t tf_vec_size = pow(4, ngram_length);
             uint64_t data_size = data.size();
             uint64_t string_size = data[0].size();
-            //tdfs.resize(tf_vec_size);
+            tdfs.resize(tf_vec_size);
             vector<VectorFloat> tf_idf_vectors(data_size, VectorFloat(tf_vec_size, 0));
             vector<double> vec_sq_sums(data_size);
             for (uint64_t i = 0; i < data_size; i++) {
@@ -182,16 +186,18 @@ namespace tf_idf_falconn_index {
                 for (uint64_t j = 0; j < tf_vec_size; j++) {
                     if (tf_idf_vectors[i][j] > 0) {
                         tf_idf_vectors[i][j] = (1 + log10(tf_idf_vectors[i][j]));
-                        //tdfs[j]++;
+                        if(use_tdfs){
+                            tdfs[j]++;
+                        }
                     }
                 }
             }
             for (uint64_t i = 0; i < data_size; i++) {
                 double_t vec_sq_sum = 0.0;
                 for (uint64_t j = 0; j < tf_vec_size; j++) {
-                    /*if(tdfs[j] > 0){
+                    if(use_tdfs && tdfs[j] > 0){
                         tf_idf_vectors[i][j] *= (log10(1 + (data_size / tdfs[j])));
-                    }*/
+                    }
                     vec_sq_sum += pow(tf_idf_vectors[i][j], 2);
                 }
                 vec_sq_sum = pow(vec_sq_sum, 0.5);
