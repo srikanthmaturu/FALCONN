@@ -295,6 +295,7 @@ struct LSHConstructionParameters {
       ar & seed;
       ar & last_cp_dimension;
       ar & num_rotations;
+      ar & feature_hashing_dimension;
   }
 };
 

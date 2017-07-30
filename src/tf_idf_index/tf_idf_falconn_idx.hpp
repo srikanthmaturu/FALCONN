@@ -16,7 +16,7 @@
 #include <math.h>
 #include "tf_idf_falconn_idx_helper.hpp"
 
-#if CUSTOM_BOOST_ENABLED
+#ifdef CUSTOM_BOOST_ENABLED
 #include "eigen_boost_serialization.hpp"
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/utility.hpp>
@@ -28,7 +28,7 @@
 #include <falconn/lsh_nn_table.h>
 
 namespace tf_idf_falconn_index {
-    template<uint64_t ngram_length_t, bool use_tdfs_t, uint8_t threshold_t, class point_type_t=SparseVectorFloat>
+    template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, uint8_t threshold_t, class point_type_t=SparseVectorFloat>
     class tf_idf_falconn_idx {
     public:
         tf_idf_falconn_idx() = default;
@@ -72,6 +72,7 @@ namespace tf_idf_falconn_index {
         falconn::LSHConstructionParameters params;
         uint8_t num_probes = 50;
         bool use_tdfs = use_tdfs_t;
+        bool use_iidf = use_iidf_t;
         double_t threshold;
 
         std::vector<std::string> original_data;
@@ -91,7 +92,7 @@ namespace tf_idf_falconn_index {
             table->reset_query_statistics();
         }
 
-        #if CUSTOM_BOOST_ENABLED
+        #ifdef CUSTOM_BOOST_ENABLED
         void store_to_file(std::string idx_file) {
             std::ofstream idx_file_ofs(idx_file);
             boost::archive::binary_oarchive oa(idx_file_ofs);
@@ -149,8 +150,13 @@ namespace tf_idf_falconn_index {
                     if(!use_tdfs){
                         tf_idf_vector[i] = (1 + log10(tf_idf_vector[i]));
                     }
-                    else if(tdfs[i] > 0){
-                        tf_idf_vector[i] *= ((log10(1 + (data_size / tdfs[i]))));
+                    else if(!use_iidf){
+                        if(tdfs[i] > 0){
+                            tf_idf_vector[i] *= ((log10(1 + (data_size / tdfs[i]))));
+                        }
+                    }
+                    else{
+                        tf_idf_vector[i] *= ((log10(1 + ((double)tdfs[i] / (double)data_size))));
                     }
                     vec_sq_sum += pow(tf_idf_vector[i], 2);
                 }
@@ -195,8 +201,15 @@ namespace tf_idf_falconn_index {
             for (uint64_t i = 0; i < data_size; i++) {
                 double_t vec_sq_sum = 0.0;
                 for (uint64_t j = 0; j < tf_vec_size; j++) {
-                    if(use_tdfs && tdfs[j] > 0){
-                        tf_idf_vectors[i][j] *= (log10(1 + (data_size / tdfs[j])));
+                    if(use_tdfs){
+                        if(!use_iidf){
+                            if(tdfs[j] > 0){
+                                tf_idf_vectors[i][j] *= (log10(1 + (data_size / tdfs[j])));
+                            }
+                        }
+                        else {
+                            tf_idf_vectors[i][j] *= (log10(1 + ((double)tdfs[j] / (double)data_size)));
+                        }
                     }
                     vec_sq_sum += pow(tf_idf_vectors[i][j], 2);
                 }

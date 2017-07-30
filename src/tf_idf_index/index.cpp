@@ -29,7 +29,11 @@ const string index_name = INDEX_NAME;
 const string index_name = "TF_IDF_FALCONN_IDX";
 #endif
 
-#define getindextype(ngl, utd, th, pt) tf_idf_falconn_idx<ngl,utd,th,pt>
+string pt_name = "";
+
+#define getindextype(ngl, utd, uiidf, th, pt) tf_idf_falconn_idx<ngl,utd,uiidf,th,pt>
+#define STR(x)    #x
+#define STRING(x) STR(x)
 
 template<class duration_type=std::chrono::seconds>
 struct my_timer{
@@ -50,10 +54,11 @@ struct my_timer{
     }
 };
 
-template<uint64_t ngram_length_t, bool use_tdfs_t, uint8_t threshold_t>
+template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, uint8_t threshold_t>
 struct idx_file_trait{
     static std::string value(std::string hash_file){
-        return hash_file + ".NGL_" + to_string(ngram_length_t)+ "_UTD_" + ((use_tdfs_t)?"true":"false") + "_TH_" +to_string(threshold_t);
+        return hash_file + ".NGL_" + to_string(ngram_length_t)+ "_UTD_" + ((use_tdfs_t)?"true":"false") + "_UIIDF_" + ((use_iidf_t)?"true":"false") +"_TH_" +to_string(threshold_t)
+                + "_PT_" + pt_name;
     }
 };
 
@@ -76,12 +81,14 @@ void load_sequences(string sequences_file, vector<string>& sequences){
 int main(int argc, char* argv[]){
     constexpr uint64_t ngram_length = NGRAM_LENGTH;
     constexpr bool use_tdfs = USE_TDFS;
+    constexpr bool use_iidf = USE_IIDF;
     constexpr uint64_t threshold = THRESHOLD;
     typedef POINT_TYPE point_type;
+    pt_name = STRING(POINT_TYPE);
 #ifdef CUSTOM_BOOST_ENABLED
     typedef INDEX_TYPE tf_idf_falconn_index_type;
 #else
-    typedef getindextype(ngram_length, use_tdfs, threshold, point_type) tf_idf_falconn_index_type;
+    typedef getindextype(ngram_length, use_tdfs, use_iidf, threshold, point_type) tf_idf_falconn_index_type;
 #endif
 
     if ( argc < 3 ) {
@@ -101,8 +108,8 @@ int main(int argc, char* argv[]){
     string queries_file = argv[2];
     string filter_enabled = argv[3];
     cout << "SF: " << sequences_file << " QF:" << queries_file << endl;
-    string idx_file = idx_file_trait<ngram_length, use_tdfs, threshold>::value(sequences_file);
-    string queries_results_file = idx_file_trait<ngram_length, use_tdfs, threshold>::value(queries_file) + "_search_results.txt";
+    string idx_file = idx_file_trait<ngram_length, use_tdfs, use_iidf, threshold>::value(sequences_file);
+    string queries_results_file = idx_file_trait<ngram_length, use_tdfs, use_iidf, threshold>::value(queries_file) + "_search_results.txt";
     tf_idf_falconn_index_type tf_idf_falconn_i;
 
     {
