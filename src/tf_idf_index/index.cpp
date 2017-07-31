@@ -91,7 +91,7 @@ int main(int argc, char* argv[]){
     typedef getindextype(ngram_length, use_tdfs, use_iidf, threshold, point_type) tf_idf_falconn_index_type;
 #endif
 
-    if ( argc < 3 ) {
+    if ( argc < 4 ) {
         cout << "Usage: ./" << argv[0] << " sequences_file query_file filter_enabled" << endl;
         return 1;
     }
