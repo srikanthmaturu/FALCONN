@@ -238,7 +238,8 @@ namespace tf_idf_falconn_index {
         typename std::enable_if<std::is_same<T, SparseVectorFloat>::value, T>::type get_point(VectorFloat tf_idf_vector){
             SparseVectorFloat point;
             point.resize(tf_idf_vector.size());
-            for (int32_t i = 0; i < tf_idf_vector.size(); i++){
+            int32_t tf_idf_vector_size = tf_idf_vector.size();
+            for (int32_t i = 0; i < tf_idf_vector_size; i++){
                 point[i] = std::make_pair(i, tf_idf_vector[i]);
             }
             return point;
