@@ -49,7 +49,6 @@ namespace tf_idf_falconn_index {
             params.l = 50;
             params.distance_function = falconn::DistanceFunction::EuclideanSquared;
             params.feature_hashing_dimension = pow(4, ngram_length);
-            falconn::compute_number_of_hash_functions<point_type>(18, &params);
             params.num_rotations = 1;
             // we want to use all the available threads to set up
             params.num_setup_threads = 0;
@@ -169,7 +168,10 @@ namespace tf_idf_falconn_index {
             }
             //std::cout << std::endl;
             point_type point = get_point<point_type>(tf_idf_vector);
-            subtract_center(point);
+            if(std::is_same<point_type , DenseVectorFloat>::value){
+                subtract_center(point);
+            }
+
             return point;
         }
 
@@ -221,7 +223,9 @@ namespace tf_idf_falconn_index {
                 //std::cout << std::endl;
                 dataset.push_back(get_point<point_type>(tf_idf_vectors[i]));
             }
-           re_center_dataset<point_type>();
+           if(std::is_same<point_type , DenseVectorFloat>::value){
+               re_center_dataset<point_type>();
+           }
         }
 
         template<class T>
@@ -237,10 +241,11 @@ namespace tf_idf_falconn_index {
         template<class T>
         typename std::enable_if<std::is_same<T, SparseVectorFloat>::value, T>::type get_point(VectorFloat tf_idf_vector){
             SparseVectorFloat point;
-            point.resize(tf_idf_vector.size());
             int32_t tf_idf_vector_size = tf_idf_vector.size();
             for (int32_t i = 0; i < tf_idf_vector_size; i++){
-                point[i] = std::make_pair(i, tf_idf_vector[i]);
+                if(tf_idf_vector[i] != 0){
+                    point.push_back(std::make_pair(i, tf_idf_vector[i]));
+                }
             }
             return point;
         }
@@ -262,37 +267,12 @@ namespace tf_idf_falconn_index {
             std::cout << "Done."<<std::endl;
         }
 
-        template<class T>
-        typename std::enable_if<std::is_same<T, SparseVectorFloat>::value, void>::type re_center_dataset(){
-            uint64_t data_size = dataset.size();
-            center = dataset[rand()%data_size];
-            uint64_t vector_size = center.size();
-            for (size_t i = 0; i < data_size; ++i) {
-                for (uint64_t j = 0; j < vector_size; j++){
-                    center[j].second += dataset[i][j].second;
-                }
-            }
-            for (uint64_t i = 0; i < vector_size; i++){
-                center[i].second /= data_size;
-            }
-            std::cout << "Re-centering dataset points." << std::endl;
-            for (size_t i = 0; i < data_size; ++i) {
-                subtract_center(dataset[i]);
-            }
-            std::cout << "Done."<<std::endl;
-        }
 
         template<class T>
         typename std::enable_if<std::is_same<T, DenseVectorFloat>::value, void>::type subtract_center(T& point){
             point -= center;
         }
 
-        template<class T>
-        typename std::enable_if<std::is_same<T, SparseVectorFloat>::value, void>::type subtract_center(T& point){
-            for (uint64_t i = 0; i < point.size(); i++){
-                point[i].second -= center[i].second;
-            }
-        }
     };
 
 }

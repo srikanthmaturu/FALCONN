@@ -145,42 +145,60 @@ int main(int argc, char* argv[]){
         ofstream results_file(queries_results_file);
         if(filter_enabled == "1"){
             cout << "Filter enabled. Filtering based on edit-distance. Only kmers with least edit-distance to query is outputted." << endl;
-            vector< vector< pair<string, uint64_t > > > query_results_vector(queries.size());
             auto start = timer::now();
 
-            //#pragma omp parallel for
-            for(uint64_t i=0; i<queries.size(); i++){
-                auto res = tf_idf_falconn_i.match(queries[i]);
-                uint8_t minED = 100;
-                for(size_t j=0; j < res.second.size(); ++j){
-                    uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[j]);
-                    if(edit_distance == 0){
-                        continue;
+            uint64_t block_size = 100000;
+            uint64_t queries_size = queries.size();
+
+            if(queries_size < block_size){
+                block_size = queries_size;
+            }
+            vector< vector< pair<string, uint64_t > > > query_results_vector(block_size);
+
+            uint64_t extra_block = block_size % queries_size;
+            uint64_t number_of_blocks = block_size / queries_size;
+
+            if(extra_block > 0) {
+                number_of_blocks++;
+            }
+
+            for(uint64_t bi = 0; bi < number_of_blocks; bi++){
+                uint64_t block_end = (bi < (number_of_blocks-1))? (bi + 1)*block_size : queries_size;
+                //#pragma omp parallel for
+                for(uint64_t i= bi * block_size; i< block_end; i++){
+                    auto res = tf_idf_falconn_i.match(queries[i]);
+                    uint8_t minED = 100;
+                    for(size_t j=0; j < res.second.size(); ++j){
+                        uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[j]);
+                        if(edit_distance == 0){
+                            continue;
+                        }
+                        if(edit_distance < minED){
+                            minED = edit_distance;
+                            query_results_vector[i].clear();
+                        }
+                        else if(edit_distance > minED){
+                            continue;
+                        }
+                        query_results_vector[i].push_back(make_pair(res.second[j], edit_distance));
                     }
-                    if(edit_distance < minED){
-                        minED = edit_distance;
-                        query_results_vector[i].clear();
-                    }
-                    else if(edit_distance > minED){
-                        continue;
-                    }
-                    query_results_vector[i].push_back(make_pair(res.second[j], edit_distance));
+                    cout << "Processed query: " << i << " Matches:" << res.first <<endl;
                 }
-                cout << "Processed query: " << i << " Matches:" << res.first <<endl;
+
+                for(uint64_t i=bi * block_size; i < block_end; i++){
+                    results_file << ">" << queries[i] << endl;
+                    //cout << "Stored results of " << i << endl;
+                    for(size_t j=0; j<query_results_vector[i].size(); j++){
+                        results_file << "" << query_results_vector[i][j].first.c_str() << "  " << query_results_vector[i][j].second << endl;
+                    }
+                }
+                query_results_vector.clear();
             }
 
             auto stop = timer::now();
             cout << "# time_per_search_query_in_us = " << duration_cast<chrono::microseconds>(stop-start).count()/(double)queries.size() << endl;
             cout << "# total_time_for_entire_queries_in_us = " << duration_cast<chrono::microseconds>(stop-start).count() << endl;
-            cout << "saving results in the results file: " << queries_results_file << endl;
-
-            for(uint64_t i=0; i < queries.size(); i++){
-                results_file << ">" << queries[i] << endl;
-                //cout << "Stored results of " << i << endl;
-                for(size_t j=0; j<query_results_vector[i].size(); j++){
-                    results_file << "" << query_results_vector[i][j].first.c_str() << "  " << query_results_vector[i][j].second << endl;
-                }
-            }
+            cout << "Saved results in the results file: " << queries_results_file << endl;
         }else{
             cout << "Filter disabled. So, outputting all similar kmers to query based on threshold given to falconn." << endl;
             auto start = timer::now();
