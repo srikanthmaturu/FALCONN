@@ -149,47 +149,48 @@ int main(int argc, char* argv[]){
 
             uint64_t block_size = 100000;
             uint64_t queries_size = queries.size();
-
+            std::cout << queries_size << std::endl;
             if(queries_size < block_size){
                 block_size = queries_size;
             }
-            vector< vector< pair<string, uint64_t > > > query_results_vector(block_size);
+            vector< vector< pair<string, uint64_t > > > query_results_vector;
 
-            uint64_t extra_block = block_size % queries_size;
-            uint64_t number_of_blocks = block_size / queries_size;
+            uint64_t extra_block = queries_size % block_size;
+            uint64_t number_of_blocks =  queries_size / block_size;
 
             if(extra_block > 0) {
                 number_of_blocks++;
             }
 
             for(uint64_t bi = 0; bi < number_of_blocks; bi++){
-                uint64_t block_end = (bi < (number_of_blocks-1))? (bi + 1)*block_size : queries_size;
+                uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
+                query_results_vector.resize(block_size);
                 //#pragma omp parallel for
-                for(uint64_t i= bi * block_size; i< block_end; i++){
+                for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
                     auto res = tf_idf_falconn_i.match(queries[i]);
                     uint8_t minED = 100;
-                    for(size_t j=0; j < res.second.size(); ++j){
-                        uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[j]);
+                    for(size_t k=0; k < res.second.size(); ++k){
+                        uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[k]);
                         if(edit_distance == 0){
                             continue;
                         }
                         if(edit_distance < minED){
                             minED = edit_distance;
-                            query_results_vector[i].clear();
+                            query_results_vector[j].clear();
                         }
                         else if(edit_distance > minED){
                             continue;
                         }
-                        query_results_vector[i].push_back(make_pair(res.second[j], edit_distance));
+                        query_results_vector[j].push_back(make_pair(res.second[k], edit_distance));
                     }
                     cout << "Processed query: " << i << " Matches:" << res.first <<endl;
                 }
 
-                for(uint64_t i=bi * block_size; i < block_end; i++){
+                for(uint64_t i=bi * block_size, j = 0; i < block_end; i++, j++){
                     results_file << ">" << queries[i] << endl;
                     //cout << "Stored results of " << i << endl;
-                    for(size_t j=0; j<query_results_vector[i].size(); j++){
-                        results_file << "" << query_results_vector[i][j].first.c_str() << "  " << query_results_vector[i][j].second << endl;
+                    for(size_t k=0; k<query_results_vector[j].size(); k++){
+                        results_file << "" << query_results_vector[j][k].first.c_str() << "  " << query_results_vector[j][k].second << endl;
                     }
                 }
                 query_results_vector.clear();
