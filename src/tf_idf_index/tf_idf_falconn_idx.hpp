@@ -273,10 +273,17 @@ namespace tf_idf_falconn_index {
             std::cout << "Done."<<std::endl;
         }
 
+        template<class T>
+        typename std::enable_if<std::is_same<T, SparseVectorFloat>::value, void>::type re_center_dataset(){
+        }
 
         template<class T>
         typename std::enable_if<std::is_same<T, DenseVectorFloat>::value, void>::type subtract_center(T& point){
             point -= center;
+        }
+
+        template<class T>
+        typename std::enable_if<std::is_same<T, SparseVectorFloat>::value, void>::type subtract_center(T& point){
         }
 
     };
