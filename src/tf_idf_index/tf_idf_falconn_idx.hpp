@@ -48,8 +48,14 @@ namespace tf_idf_falconn_index {
             params.lsh_family = falconn::LSHFamily::CrossPolytope;
             params.l = 50;
             params.distance_function = falconn::DistanceFunction::EuclideanSquared;
-            params.feature_hashing_dimension = pow(4, ngram_length);
-            params.num_rotations = 1;
+
+            if(std::is_same<point_type , DenseVectorFloat>::value){
+                params.num_rotations = 1;
+                params.feature_hashing_dimension = pow(4, ngram_length);
+            }else{
+                params.num_rotations = 2;
+                params.feature_hashing_dimension = pow(4, ngram_length) / 2;
+            }
             // we want to use all the available threads to set up
             params.num_setup_threads = 0;
             params.storage_hash_table = falconn::StorageHashTable::BitPackedFlatHashTable;
