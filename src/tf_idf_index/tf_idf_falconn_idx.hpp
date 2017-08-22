@@ -47,19 +47,22 @@ namespace tf_idf_falconn_index {
             params.dimension = dataset[0].size();
             params.lsh_family = falconn::LSHFamily::CrossPolytope;
             params.l = 50;
+            std::cout << "Number of Hash Tables: " << params.l << std::endl;
             params.distance_function = falconn::DistanceFunction::EuclideanSquared;
 
             if(std::is_same<point_type , DenseVectorFloat>::value){
                 params.num_rotations = 1;
                 params.feature_hashing_dimension = pow(4, ngram_length);
             }else{
-                params.num_rotations = 2;
-                params.feature_hashing_dimension = pow(4, ngram_length) / 2;
+                params.num_rotations = 1;
+                params.feature_hashing_dimension = pow(4, ngram_length);
             }
+            std::cout << "Feature Hashing Dimension: " << params.feature_hashing_dimension << std::endl;
             // we want to use all the available threads to set up
             params.num_setup_threads = 0;
             params.storage_hash_table = falconn::StorageHashTable::BitPackedFlatHashTable;
             falconn::compute_number_of_hash_functions<point_type>(18, &params);
+            std::cout << "Number of Hash Functions Per Hash Table: " << params.k << std::endl;
             threshold = (double_t)threshold_t / (double_t)100;
             std::cout << "FALCONN threshold set to " << threshold << std::endl;
         }
@@ -75,7 +78,7 @@ namespace tf_idf_falconn_index {
         Dataset dataset;
         point_type center;
         falconn::LSHConstructionParameters params;
-        uint8_t num_probes = 50;
+        uint8_t num_probes = 100;
         bool use_tdfs = use_tdfs_t;
         bool use_iidf = use_iidf_t;
         double_t threshold;
