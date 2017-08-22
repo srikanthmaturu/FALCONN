@@ -54,8 +54,8 @@ namespace tf_idf_falconn_index {
                 params.num_rotations = 1;
                 params.feature_hashing_dimension = pow(4, ngram_length);
             }else{
-                params.num_rotations = 1;
-                params.feature_hashing_dimension = pow(4, ngram_length);
+                params.num_rotations = 2;
+                params.feature_hashing_dimension = pow(4, ngram_length) / 2;
             }
             std::cout << "Feature Hashing Dimension: " << params.feature_hashing_dimension << std::endl;
             // we want to use all the available threads to set up
@@ -252,9 +252,8 @@ namespace tf_idf_falconn_index {
             SparseVectorFloat point;
             int32_t tf_idf_vector_size = tf_idf_vector.size();
             for (int32_t i = 0; i < tf_idf_vector_size; i++){
-                if(tf_idf_vector[i] != 0){
-                    point.push_back(std::make_pair(i, tf_idf_vector[i]));
-                }
+//                if(tf_idf_vector[i] != 0){}
+                point.push_back(std::make_pair(i, tf_idf_vector[i]));
             }
             return point;
         }
