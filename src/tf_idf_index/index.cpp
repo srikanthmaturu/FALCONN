@@ -142,7 +142,7 @@ int main(int argc, char* argv[]){
         tf_idf_falconn_i.construct_table();
         vector<string> queries;
         load_sequences(queries_file, queries);
-        ofstream results_file(queries_results_file);
+        ofstream results_file(queries_results_file), linear_test_results_file("linear_test_results");
         if(filter_enabled == "1"){
             cout << "Filter enabled. Filtering based on edit-distance. Only kmers with least edit-distance to query is outputted." << endl;
             auto start = timer::now();
@@ -168,6 +168,7 @@ int main(int argc, char* argv[]){
                 //#pragma omp parallel for
                 for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
                     auto res = tf_idf_falconn_i.match(queries[i]);
+                    tf_idf_falconn_i.linear_test(queries[i], linear_test_results_file);
                     uint8_t minED = 100;
                     for(size_t k=0; k < res.second.size(); ++k){
                         uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[k]);
