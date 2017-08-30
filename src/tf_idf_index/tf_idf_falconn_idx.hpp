@@ -265,6 +265,7 @@ namespace tf_idf_falconn_index {
             uint64_t data_size = dataset.size();
             center = dataset[rand() % data_size];
             for (size_t i = 1; i < data_size; ++i) {
+                //dataset[i].normalize();
                 center += dataset[i];
             }
             center /= dataset.size();
@@ -272,7 +273,6 @@ namespace tf_idf_falconn_index {
             std::cout << "Re-centering dataset points." << std::endl;
             for (auto &datapoint : dataset) {
                 datapoint -= center;
-                datapoint.normalize();
             }
             std::cout << "Done." << std::endl;
         }
