@@ -178,7 +178,7 @@ namespace tf_idf_falconn_index {
             point_type point = get_point<point_type>(tf_idf_vector);
             if (std::is_same<point_type, DenseVectorFloat>::value) {
                 subtract_center(point);
-                point.normalize();
+                //point.normalize();
             }
 
             return point;
