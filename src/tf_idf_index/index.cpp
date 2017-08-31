@@ -161,14 +161,16 @@ int main(int argc, char* argv[]){
             if(extra_block > 0) {
                 number_of_blocks++;
             }
-
+            uint64_t realMatchesCount = 0, actualMatchesCount = 0;
             for(uint64_t bi = 0; bi < number_of_blocks; bi++){
                 uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
                 query_results_vector.resize(block_size);
                 //#pragma omp parallel for
                 for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
                     auto res = tf_idf_falconn_i.match(queries[i]);
-                    tf_idf_falconn_i.linear_test(queries[i], linear_test_results_file);
+                    //tf_idf_falconn_i.linear_test(queries[i], linear_test_results_file);
+                    auto nnPair = tf_idf_falconn_i.count_nearest_neighbours(queries[i]);
+                    realMatchesCount += nnPair.second;
                     uint8_t minED = 100;
                     for(size_t k=0; k < res.second.size(); ++k){
                         uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[k]);
@@ -184,7 +186,12 @@ int main(int argc, char* argv[]){
                         }
                         query_results_vector[j].push_back(make_pair(res.second[k], edit_distance));
                     }
-                    cout << "Processed query: " << i << " Matches:" << res.first <<endl;
+                    uint64_t actual_matches = 0;
+                    if(nnPair.first == minED){
+                        actual_matches = query_results_vector[j].size();
+                        actualMatchesCount += actual_matches;
+                    }
+                    cout << "Processed query: " << i << " Actual Matches: " << actual_matches << " Real Matches: " << nnPair.second << endl;
                 }
 
                 for(uint64_t i=bi * block_size, j = 0; i < block_end; i++, j++){
@@ -201,6 +208,7 @@ int main(int argc, char* argv[]){
             cout << "# time_per_search_query_in_us = " << duration_cast<chrono::microseconds>(stop-start).count()/(double)queries.size() << endl;
             cout << "# total_time_for_entire_queries_in_us = " << duration_cast<chrono::microseconds>(stop-start).count() << endl;
             cout << "Saved results in the results file: " << queries_results_file << endl;
+            cout << "Actual Matches: " << actualMatchesCount << " Real Matches: " << realMatchesCount << " Recall: " << (actualMatchesCount * 1.0) /(realMatchesCount * 1.0) <<endl;
         }else{
             cout << "Filter disabled. So, outputting all similar kmers to query based on threshold given to falconn." << endl;
             auto start = timer::now();
