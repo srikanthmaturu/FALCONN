@@ -28,7 +28,7 @@
 #include <falconn/lsh_nn_table.h>
 
 namespace tf_idf_falconn_index {
-    template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, uint8_t threshold_t, class point_type_t=SparseVectorFloat>
+    template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, uint64_t number_of_hash_bits_t, uint64_t number_of_probes_t, uint8_t threshold_t, class point_type_t=SparseVectorFloat>
     class tf_idf_falconn_idx {
     public:
         tf_idf_falconn_idx() = default;
@@ -46,8 +46,7 @@ namespace tf_idf_falconn_index {
             construct_dataset(data);
             params.dimension = dataset[0].size();
             params.lsh_family = falconn::LSHFamily::CrossPolytope;
-            params.l = 50;
-            std::cout << "Number of Hash Tables: " << params.l << std::endl;
+            params.l = 64;
             params.distance_function = falconn::DistanceFunction::EuclideanSquared;
 
             if (std::is_same<point_type, DenseVectorFloat>::value) {
@@ -57,27 +56,31 @@ namespace tf_idf_falconn_index {
                 params.num_rotations = 2;
                 params.feature_hashing_dimension = pow(4, ngram_length) / 2;
             }
-            std::cout << "Feature Hashing Dimension: " << params.feature_hashing_dimension << std::endl;
+
             // we want to use all the available threads to set up
-            params.num_setup_threads = 0;
+            params.num_setup_threads = 1;
             params.storage_hash_table = falconn::StorageHashTable::BitPackedFlatHashTable;
-            falconn::compute_number_of_hash_functions<point_type>(18, &params);
-            std::cout << "Number of Hash Functions Per Hash Table: " << params.k << std::endl;
+            falconn::compute_number_of_hash_functions<point_type>(number_of_hash_bits, &params);
+
             threshold = (double_t) threshold_t / (double_t) 100;
             std::cout << "FALCONN threshold set to " << threshold << std::endl;
         }
 
-        void setThreshold() {
-
+        void printLSHConstructionParameters(){
+            std::cout << "Number of Hash Tables: " << params.l << std::endl;
+            std::cout << "Feature Hashing Dimension: " << params.feature_hashing_dimension << std::endl;
+            std::cout << "Number of Hash bits: " << number_of_hash_bits << std::endl;
+            std::cout << "Number of Hash Functions Per Hash Table: " << params.k << std::endl;
+            std::cout << "Last CP dimension: " << params.last_cp_dimension << std::endl;
         }
-
         typedef point_type_t point_type;
         typedef vector<point_type> Dataset;
 
         Dataset dataset;
         point_type center;
         falconn::LSHConstructionParameters params;
-        uint8_t num_probes = 100;
+        uint64_t number_of_hash_bits = number_of_hash_bits_t;
+        uint64_t num_probes = number_of_probes_t;
         bool use_tdfs = use_tdfs_t;
         bool use_iidf = use_iidf_t;
         double_t threshold;
