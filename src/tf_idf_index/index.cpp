@@ -155,7 +155,7 @@ int main(int argc, char* argv[]){
             if(queries_size < block_size){
                 block_size = queries_size;
             }
-
+            vector<vector<uint64_t>> queries_linear_results(queries.size(),vector<uint64_t>(3,0));
             for(uint64_t l = 32; l <= 64; l += 32){
                 for(uint64_t nhb = 7; nhb <= 21; nhb += 7){
                     for(uint64_t np = l; np < l * 3; np +=5){
@@ -179,10 +179,21 @@ int main(int argc, char* argv[]){
                             for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
                                 auto res = tf_idf_falconn_i.match(queries[i]);
                                 //tf_idf_falconn_i.linear_test(queries[i], linear_test_results_file);
-                                auto nnPair = tf_idf_falconn_i.count_nearest_neighbours(queries[i]);
+                                std::pair<uint64_t, uint64_t> nnPair;
+                                if(queries_linear_results[i][0] == 0){
+                                    queries_linear_results[i][0] = 1;
+                                    nnPair = tf_idf_falconn_i.count_nearest_neighbours(queries[i]);
+                                    queries_linear_results[i][1] = nnPair.first;
+                                    queries_linear_results[i][2] = nnPair.second;
+                                }
+                                else{
+                                    nnPair.first = queries_linear_results[i][1];
+                                    nnPair.second = queries_linear_results[i][2];
+                                }
                                 if(nnPair.first <= 40){
                                     realMatchesCount += nnPair.second;
                                 }
+
                                 uint8_t minED = 100;
                                 for(size_t k=0; k < res.second.size(); ++k){
                                     uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[k]);
