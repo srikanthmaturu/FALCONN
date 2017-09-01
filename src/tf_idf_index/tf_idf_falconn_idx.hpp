@@ -142,7 +142,7 @@ namespace tf_idf_falconn_index {
 
         std::pair<uint64_t, std::vector<std::string>> match(std::string query) {
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
-            std::cout << std::endl;
+            //std::cout << std::endl;
             std::vector<int32_t> nearestNeighbours;
             query_object->find_near_neighbors(query_tf_idf_vector, threshold, &nearestNeighbours);
             std::vector<std::string> matches;
