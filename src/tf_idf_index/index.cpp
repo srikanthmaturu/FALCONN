@@ -140,14 +140,13 @@ int main(int argc, char* argv[]){
         load_sequences(sequences_file, sequences);
         tf_idf_falconn_i = tf_idf_falconn_index_type(sequences);
 #endif
-        tf_idf_falconn_i.printLSHConstructionParameters();
+        //tf_idf_falconn_i.printLSHConstructionParameters();
         tf_idf_falconn_i.construct_table();
         vector<string> queries;
         load_sequences(queries_file, queries);
         ofstream results_file(queries_results_file), box_test_results_file("box_test_results");
         if(filter_enabled == "1"){
             cout << "Filter enabled. Filtering based on edit-distance. Only kmers with least edit-distance to query is outputted." << endl;
-            auto start = timer::now();
 
             uint64_t block_size = 100000;
             uint64_t queries_size = queries.size();
@@ -158,6 +157,13 @@ int main(int argc, char* argv[]){
             vector<vector<uint64_t>> queries_linear_results(queries.size(),vector<uint64_t>(3,0));
             for(uint64_t l = 32; l <= 64; l += 32){
                 for(uint64_t nhb = 7; nhb <= 21; nhb += 7){
+                    uint64_t np_max = 0;
+                    if(nhb == 7){
+                        np_max = l * 3;
+                    }
+                    else {
+                        np_max = l * 6;
+                    }
                     for(uint64_t np = l; np < l * 3; np +=5){
                         tf_idf_falconn_i.updateParmeters(l, nhb, np);
                         vector< vector< pair<string, uint64_t > > > query_results_vector;
@@ -167,7 +173,7 @@ int main(int argc, char* argv[]){
                         tf_idf_falconn_i.printLSHConstructionParameters();
                         uint64_t extra_block = queries_size % block_size;
                         uint64_t number_of_blocks =  queries_size / block_size;
-
+                        auto start = timer::now();
                         if(extra_block > 0) {
                             number_of_blocks++;
                         }
@@ -228,7 +234,7 @@ int main(int argc, char* argv[]){
                         }
 
                         auto stop = timer::now();
-                        box_test_results_file << (actualMatchesCount * 1.0) /(realMatchesCount * 1.0) << "," << duration_cast<chrono::microseconds>(stop-start).count()/(double)queries.size() << "," << l << "," << nhb << "," << np << endl;
+                        box_test_results_file << (actualMatchesCount * 1.0) /(realMatchesCount * 1.0) << "," << (duration_cast<chrono::microseconds>(stop-start).count()/1000000.0)/(double)queries.size() << "," << l << "," << nhb << "," << np << endl;
                     }
                 }
             }
