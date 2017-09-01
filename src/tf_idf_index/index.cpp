@@ -162,7 +162,7 @@ int main(int argc, char* argv[]){
                         np_max = l * 3;
                     }
                     else {
-                        np_max = l * 6;
+                        np_max = l * 12;
                     }
                     for(uint64_t np = l; np < np_max; np +=5){
                         tf_idf_falconn_i.updateParmeters(l, nhb, np);
