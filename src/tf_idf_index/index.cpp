@@ -164,7 +164,7 @@ int main(int argc, char* argv[]){
                     else {
                         np_max = l * 6;
                     }
-                    for(uint64_t np = l; np < l * 3; np +=5){
+                    for(uint64_t np = l; np < np_max; np +=5){
                         tf_idf_falconn_i.updateParmeters(l, nhb, np);
                         vector< vector< pair<string, uint64_t > > > query_results_vector;
                         tf_idf_falconn_i.printLSHConstructionParameters();
