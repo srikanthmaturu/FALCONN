@@ -73,6 +73,13 @@ namespace tf_idf_falconn_index {
             std::cout << "Number of Hash Functions Per Hash Table: " << params.k << std::endl;
             std::cout << "Last CP dimension: " << params.last_cp_dimension << std::endl;
         }
+
+        void updateParmeters(uint64_t l, uint64_t nhb, uint64_t np){
+            params.l = l;
+            falconn::compute_number_of_hash_functions<point_type>(nhb, &params);
+            num_probes = np;
+        }
+
         typedef point_type_t point_type;
         typedef vector<point_type> Dataset;
 
@@ -95,11 +102,13 @@ namespace tf_idf_falconn_index {
                                      {'N', 4}};
 
         unique_ptr<falconn::LSHNearestNeighborTable<point_type>> table;
+        unique_ptr<falconn::LSHNearestNeighborQuery<point_type>> query_object;
 
         void construct_table() {
             std::cout << "Dataset size: " << dataset.size() << std::endl;
             table = std::move(falconn::construct_table<point_type>(dataset, params));
-            table->reset_query_statistics();
+            //table->reset_query_statistics();
+            query_object = table->construct_query_object(num_probes);
         }
 
 #ifdef CUSTOM_BOOST_ENABLED
@@ -135,7 +144,7 @@ namespace tf_idf_falconn_index {
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
             std::cout << std::endl;
             std::vector<int32_t> nearestNeighbours;
-            table->find_near_neighbors(query_tf_idf_vector, threshold, &nearestNeighbours);
+            query_object->find_near_neighbors(query_tf_idf_vector, threshold, &nearestNeighbours);
             std::vector<std::string> matches;
             for (auto i:nearestNeighbours) {
                 matches.push_back(original_data[i]);
