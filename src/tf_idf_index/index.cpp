@@ -236,8 +236,8 @@ int main(int argc, char* argv[]){
                         auto stop = timer::now();
                         double recall = (actualMatchesCount * 1.0) /(realMatchesCount * 1.0);
                         box_test_results_file << recall << "," << (duration_cast<chrono::microseconds>(stop-start).count()/1000000.0)/(double)queries.size() << "," << l << "," << nhb << "," << np << endl;
-                        if(np_max < (np + 5) && (recall < 0.9)){
-                            np_max += 5;
+                        if(np_max <= (np + 5) && (recall < 0.9)){
+                            np_max += 10;
                         }
                     }
                 }
