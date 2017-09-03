@@ -164,7 +164,7 @@ int main(int argc, char* argv[]){
                     else {
                         np_max = l * 12;
                     }
-                    for(uint64_t np = l; np < np_max; np +=5){
+                    for(uint64_t np = l; np < np_max; np +=25){
                         tf_idf_falconn_i.updateParmeters(l, nhb, np);
                         vector< vector< pair<string, uint64_t > > > query_results_vector;
                         tf_idf_falconn_i.printLSHConstructionParameters();
@@ -236,8 +236,8 @@ int main(int argc, char* argv[]){
                         auto stop = timer::now();
                         double recall = (actualMatchesCount * 1.0) /(realMatchesCount * 1.0);
                         box_test_results_file << recall << "," << (duration_cast<chrono::microseconds>(stop-start).count()/1000000.0)/(double)queries.size() << "," << l << "," << nhb << "," << np << endl;
-                        if(np_max <= (np + 5) && (recall < 0.9)){
-                            np_max += 10;
+                        if(np_max <= (np + 25) && (recall < 0.9)){
+                            np_max += 50;
                         }
                     }
                 }

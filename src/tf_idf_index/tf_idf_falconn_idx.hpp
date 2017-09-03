@@ -71,10 +71,12 @@ namespace tf_idf_falconn_index {
             std::cout << "Feature Hashing Dimension: " << params.feature_hashing_dimension << std::endl;
             std::cout << "Number of Hash bits: " << number_of_hash_bits << std::endl;
             std::cout << "Number of Hash Functions Per Hash Table: " << params.k << std::endl;
+            std::cout << "Number of Probes: " << num_probes << std::endl;
             std::cout << "Last CP dimension: " << params.last_cp_dimension << std::endl;
         }
 
         void updateParmeters(uint64_t l, uint64_t nhb, uint64_t np){
+            number_of_hash_bits = nhb;
             params.l = l;
             falconn::compute_number_of_hash_functions<point_type>(nhb, &params);
             num_probes = np;
