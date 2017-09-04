@@ -165,7 +165,7 @@ int main(int argc, char* argv[]){
                         np_max = l * 12;
                     }
                     uint64_t step = 200;
-                    for(uint64_t np = l; np < np_max; np = step + 200){
+                    for(uint64_t np = l; np < np_max; np = np + step){
                         tf_idf_falconn_i.updateParmeters(l, nhb, np);
                         vector< vector< pair<string, uint64_t > > > query_results_vector;
                         tf_idf_falconn_i.printLSHConstructionParameters();
@@ -240,6 +240,9 @@ int main(int argc, char* argv[]){
                         if(np_max <= (np + step) && (recall < 0.9)){
                             step *= 2;
                             np_max = np + step * 2;
+                        }
+                        else{
+                            break;
                         }
                     }
                 }
