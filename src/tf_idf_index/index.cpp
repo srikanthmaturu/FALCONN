@@ -241,7 +241,7 @@ int main(int argc, char* argv[]){
                             step *= 2;
                             np_max = np + step * 2;
                         }
-                        else{
+                        if(recall >= 0.9){
                             break;
                         }
                     }
