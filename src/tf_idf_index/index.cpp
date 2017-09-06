@@ -58,7 +58,7 @@ template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, uint64_t num
 struct idx_file_trait{
     static std::string value(std::string hash_file){
         return hash_file + ".NGL_" + to_string(ngram_length_t)+ "_UTD_" + ((use_tdfs_t)?"true":"false") + "_UIIDF_" + ((use_iidf_t)?"true":"false")+"_NHB_"+to_string(number_of_hash_bits)+"_NP_" +to_string(number_of_probes)+"_TH_" +to_string(threshold_t)
-                + "_PT_" + pt_name;
+               + "_PT_" + pt_name;
     }
 };
 
@@ -78,6 +78,164 @@ void load_sequences(string sequences_file, vector<string>& sequences){
     }
 }
 
+template<class index_type>
+void process_queries_test(index_type tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
+    ofstream box_test_results_file("box_test_results");
+    vector< vector< pair<string, uint64_t > > > query_results_vector;
+    uint64_t block_size = 100000;
+    uint64_t queries_size = queries.size();
+    std::cout << queries_size << std::endl;
+    if(queries_size < block_size){
+        block_size = queries_size;
+    }
+    vector<vector<uint64_t>> queries_linear_results(queries.size(),vector<uint64_t>(3,0));
+    for(uint64_t l = 32; l <= 64; l += 32){
+        for(uint64_t nhb = 14; nhb <= 21; nhb += 7){
+            uint64_t np_max = 0;
+            if(nhb == 7){
+                np_max = l * 3;
+            }
+            else {
+                np_max = l * 12;
+            }
+            uint64_t step = 1000;
+            for(uint64_t np = l; np < np_max; np = np + step){
+                tf_idf_falconn_i.updateParmeters(l, nhb, np);
+                vector< vector< pair<string, uint64_t > > > query_results_vector;
+                cout << "Current LSH Parameters: " << endl;
+                tf_idf_falconn_i.printLSHConstructionParameters();
+                tf_idf_falconn_i.construct_table();
+                uint64_t extra_block = queries_size % block_size;
+                uint64_t number_of_blocks =  queries_size / block_size;
+                auto start = timer::now();
+                if(extra_block > 0) {
+                    number_of_blocks++;
+                }
+                uint64_t realMatchesCount = 0, actualMatchesCount = 0;
+                for(uint64_t bi = 0; bi < number_of_blocks; bi++){
+                    uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
+                    query_results_vector.resize(block_size);
+                    //#pragma omp parallel for
+                    for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
+                        auto res = tf_idf_falconn_i.match(queries[i]);
+                        //tf_idf_falconn_i.linear_test(queries[i], linear_test_results_file);
+                        std::pair<uint64_t, uint64_t> nnPair;
+                        if(queries_linear_results[i][0] == 0){
+                            queries_linear_results[i][0] = 1;
+                            nnPair = tf_idf_falconn_i.count_nearest_neighbours(queries[i]);
+                            queries_linear_results[i][1] = nnPair.first;
+                            queries_linear_results[i][2] = nnPair.second;
+                        }
+                        else{
+                            nnPair.first = queries_linear_results[i][1];
+                            nnPair.second = queries_linear_results[i][2];
+                        }
+                        if(nnPair.first <= 40){
+                            realMatchesCount += nnPair.second;
+                        }
+
+                        uint8_t minED = 100;
+                        for(size_t k=0; k < res.second.size(); ++k){
+                            uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[k]);
+                            if(edit_distance == 0){
+                                continue;
+                            }
+                            if(edit_distance < minED){
+                                minED = edit_distance;
+                                query_results_vector[j].clear();
+                            }
+                            else if(edit_distance > minED){
+                                continue;
+                            }
+                            query_results_vector[j].push_back(make_pair(res.second[k], edit_distance));
+                        }
+                        uint64_t actual_matches = 0;
+                        if(nnPair.first == minED && nnPair.first <= 40){
+                            actual_matches = query_results_vector[j].size();
+                            actualMatchesCount += actual_matches;
+                        }
+                        cout << "Processed query: " << i << " Candidates: " << res.second.size() << " Actual Matches: " << actual_matches << " Real Matches: " << nnPair.second << endl;
+                    }
+
+                    for(uint64_t i=bi * block_size, j = 0; i < block_end; i++, j++){
+                        results_file << ">" << queries[i] << endl;
+                        cout << "Stored results of " << i << endl;
+                        for(size_t k=0; k<query_results_vector[j].size(); k++){
+                            results_file << "" << query_results_vector[j][k].first.c_str() << "  " << query_results_vector[j][k].second << endl;
+                        }
+                    }
+                    query_results_vector.clear();
+                }
+                auto stop = timer::now();
+                double recall = (actualMatchesCount * 1.0) /(realMatchesCount * 1.0);
+                box_test_results_file << recall << "," << (duration_cast<chrono::microseconds>(stop-start).count()/1000000.0)/(double)queries.size() << "," << l << "," << nhb << "," << np << endl;
+                if(np_max <= (np + step) && (recall < 0.9)){
+                    np_max = np + step * 2;
+                }
+                if(recall >= 0.9){
+                    break;
+                }
+            }
+        }
+    }
+}
+
+template<class index_type>
+void process_queries(index_type tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
+    vector< vector< pair<string, uint64_t > > > query_results_vector;
+    uint64_t block_size = 100000;
+    uint64_t queries_size = queries.size();
+    std::cout << queries_size << std::endl;
+    if(queries_size < block_size){
+        block_size = queries_size;
+    }
+
+    uint64_t extra_block = queries_size % block_size;
+    uint64_t number_of_blocks =  queries_size / block_size;
+
+    if(extra_block > 0) {
+        number_of_blocks++;
+    }
+    auto start = timer::now();
+    for(uint64_t bi = 0; bi < number_of_blocks; bi++){
+        uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
+        query_results_vector.resize(block_size);
+        #pragma omp parallel for
+        for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
+            auto res = tf_idf_falconn_i.match(queries[i]);
+
+            uint8_t minED = 100;
+            for(size_t k=0; k < res.second.size(); ++k){
+                uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[k]);
+                if(edit_distance == 0){
+                    continue;
+                }
+                if(edit_distance < minED){
+                    minED = edit_distance;
+                    query_results_vector[j].clear();
+                }
+                else if(edit_distance > minED){
+                    continue;
+                }
+                query_results_vector[j].push_back(make_pair(res.second[k], edit_distance));
+            }
+            cout << "Processed query: " << i << " Candidates: " << res.second.size() << endl;
+        }
+
+        for(uint64_t i=bi * block_size, j = 0; i < block_end; i++, j++){
+            results_file << ">" << queries[i] << endl;
+            cout << "Stored results of " << i << endl;
+            for(size_t k=0; k<query_results_vector[j].size(); k++){
+                results_file << "" << query_results_vector[j][k].first.c_str() << "  " << query_results_vector[j][k].second << endl;
+            }
+        }
+        query_results_vector.clear();
+    }
+    auto stop = timer::now();
+    cout << "# time_per_search_query_in_seconds = " << (duration_cast<chrono::microseconds>(stop-start).count()/1000000.0)/(double)queries_size << endl;
+    cout << "# total_time_for_entire_queries_in_seconds= " << duration_cast<chrono::microseconds>(stop-start).count() << endl;
+}
+
 int main(int argc, char* argv[]){
     constexpr uint64_t ngram_length = NGRAM_LENGTH;
     constexpr bool use_tdfs = USE_TDFS;
@@ -94,7 +252,7 @@ int main(int argc, char* argv[]){
 #endif
 
     if ( argc < 4 ) {
-        cout << "Usage: ./" << argv[0] << " sequences_file query_file filter_enabled" << endl;
+        cout << "Usage: ./" << argv[0] << " sequences_file query_file filter_enabled [box_test]" << endl;
         return 1;
     }
 
@@ -144,114 +302,17 @@ int main(int argc, char* argv[]){
         tf_idf_falconn_i.construct_table();
         vector<string> queries;
         load_sequences(queries_file, queries);
-        ofstream results_file(queries_results_file), box_test_results_file("box_test_results");
+        ofstream results_file(queries_results_file);
         if(filter_enabled == "1"){
             cout << "Filter enabled. Filtering based on edit-distance. Only kmers with least edit-distance to query is outputted." << endl;
-
-            uint64_t block_size = 100000;
-            uint64_t queries_size = queries.size();
-            std::cout << queries_size << std::endl;
-            if(queries_size < block_size){
-                block_size = queries_size;
+            if(argc == 5){
+                process_queries_test(tf_idf_falconn_i, queries, results_file);
             }
-            vector<vector<uint64_t>> queries_linear_results(queries.size(),vector<uint64_t>(3,0));
-            for(uint64_t l = 32; l <= 64; l += 32){
-                for(uint64_t nhb = 7; nhb <= 21; nhb += 7){
-                    uint64_t np_max = 0;
-                    if(nhb == 7){
-                        np_max = l * 3;
-                    }
-                    else {
-                        np_max = l * 12;
-                    }
-                    uint64_t step = 200;
-                    for(uint64_t np = l; np < np_max; np = np + step){
-                        tf_idf_falconn_i.updateParmeters(l, nhb, np);
-                        vector< vector< pair<string, uint64_t > > > query_results_vector;
-                        tf_idf_falconn_i.printLSHConstructionParameters();
-                        tf_idf_falconn_i.construct_table();
-                        cout << "Current LSH Parameters: " << endl;
-                        tf_idf_falconn_i.printLSHConstructionParameters();
-                        uint64_t extra_block = queries_size % block_size;
-                        uint64_t number_of_blocks =  queries_size / block_size;
-                        auto start = timer::now();
-                        if(extra_block > 0) {
-                            number_of_blocks++;
-                        }
-                        uint64_t realMatchesCount = 0, actualMatchesCount = 0;
-                        for(uint64_t bi = 0; bi < number_of_blocks; bi++){
-                            uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
-                            query_results_vector.resize(block_size);
-                            //#pragma omp parallel for
-                            for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
-                                auto res = tf_idf_falconn_i.match(queries[i]);
-                                //tf_idf_falconn_i.linear_test(queries[i], linear_test_results_file);
-                                std::pair<uint64_t, uint64_t> nnPair;
-                                if(queries_linear_results[i][0] == 0){
-                                    queries_linear_results[i][0] = 1;
-                                    nnPair = tf_idf_falconn_i.count_nearest_neighbours(queries[i]);
-                                    queries_linear_results[i][1] = nnPair.first;
-                                    queries_linear_results[i][2] = nnPair.second;
-                                }
-                                else{
-                                    nnPair.first = queries_linear_results[i][1];
-                                    nnPair.second = queries_linear_results[i][2];
-                                }
-                                if(nnPair.first <= 40){
-                                    realMatchesCount += nnPair.second;
-                                }
-
-                                uint8_t minED = 100;
-                                for(size_t k=0; k < res.second.size(); ++k){
-                                    uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[k]);
-                                    if(edit_distance == 0){
-                                        continue;
-                                    }
-                                    if(edit_distance < minED){
-                                        minED = edit_distance;
-                                        query_results_vector[j].clear();
-                                    }
-                                    else if(edit_distance > minED){
-                                        continue;
-                                    }
-                                    query_results_vector[j].push_back(make_pair(res.second[k], edit_distance));
-                                }
-                                uint64_t actual_matches = 0;
-                                if(nnPair.first == minED && nnPair.first <= 40){
-                                    actual_matches = query_results_vector[j].size();
-                                    actualMatchesCount += actual_matches;
-                                }
-                                //cout << "Processed query: " << i << " Candidates: " << res.second.size() << " Actual Matches: " << actual_matches << " Real Matches: " << nnPair.second << endl;
-                            }
-
-                            for(uint64_t i=bi * block_size, j = 0; i < block_end; i++, j++){
-                                results_file << ">" << queries[i] << endl;
-                                //cout << "Stored results of " << i << endl;
-                                for(size_t k=0; k<query_results_vector[j].size(); k++){
-                                    results_file << "" << query_results_vector[j][k].first.c_str() << "  " << query_results_vector[j][k].second << endl;
-                                }
-                            }
-                            query_results_vector.clear();
-                        }
-
-                        auto stop = timer::now();
-                        double recall = (actualMatchesCount * 1.0) /(realMatchesCount * 1.0);
-                        box_test_results_file << recall << "," << (duration_cast<chrono::microseconds>(stop-start).count()/1000000.0)/(double)queries.size() << "," << l << "," << nhb << "," << np << endl;
-                        if(np_max <= (np + step) && (recall < 0.9)){
-                            step *= 2;
-                            np_max = np + step * 2;
-                        }
-                        if(recall >= 0.9){
-                            break;
-                        }
-                    }
-                }
+            else{
+                process_queries(tf_idf_falconn_i, queries, results_file);
+                cout << "Saved results in the results file: " << queries_results_file << endl;
             }
 
-            /*cout << "# time_per_search_query_in_us = " << duration_cast<chrono::microseconds>(stop-start).count()/(double)queries.size() << endl;
-            cout << "# total_time_for_entire_queries_in_us = " << duration_cast<chrono::microseconds>(stop-start).count() << endl;
-            cout << "Saved results in the results file: " << queries_results_file << endl;
-            cout << "Actual Matches: " << actualMatchesCount << " Real Matches: " << realMatchesCount << " Recall: " << (actualMatchesCount * 1.0) /(realMatchesCount * 1.0) <<endl;*/
         }else{
             cout << "Filter disabled. So, outputting all similar kmers to query based on threshold given to falconn." << endl;
             auto start = timer::now();
