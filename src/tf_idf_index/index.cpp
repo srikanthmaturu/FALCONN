@@ -79,7 +79,7 @@ void load_sequences(string sequences_file, vector<string>& sequences){
 }
 
 template<class index_type>
-void process_queries_test(index_type tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
+void process_queries_test(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
     ofstream box_test_results_file("box_test_results");
     vector< vector< pair<string, uint64_t > > > query_results_vector;
     uint64_t block_size = 100000;
@@ -181,7 +181,7 @@ void process_queries_test(index_type tf_idf_falconn_i, vector<string>& queries, 
 }
 
 template<class index_type>
-void process_queries(index_type tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
+void process_queries(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
     vector< vector< pair<string, uint64_t > > > query_results_vector;
     uint64_t block_size = 100000;
     uint64_t queries_size = queries.size();
@@ -200,7 +200,7 @@ void process_queries(index_type tf_idf_falconn_i, vector<string>& queries, ofstr
     for(uint64_t bi = 0; bi < number_of_blocks; bi++){
         uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
         query_results_vector.resize(block_size);
-        #pragma omp parallel for
+        //#pragma omp parallel for
         for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
             auto res = tf_idf_falconn_i.match(queries[i]);
 
