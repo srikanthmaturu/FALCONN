@@ -13,6 +13,8 @@
 #include <math.h>
 #include <unordered_map>
 #include <vector>
+#include <utility>
+#include "xxhash.h"
 
 #include <falconn/lsh_nn_table.h>
 typedef falconn::DenseVector<float> DenseVectorFloat;
@@ -88,4 +90,30 @@ size_t uiLevenshteinDistance(const std::string &s1, const std::string &s2)
 
     return result;
 }
+
+vector<uint64_t>& hashify_vector(vector<string>& sequences){
+    vector<uint64_t> * hashes = new vector<uint64_t>();
+    for(string s: sequences){
+        hashes->push_back(XXH64(s.c_str(), 5, 0xcc9e2d51));
+    }
+    return *hashes;
+}
+
+pair<uint64_t, uint64_t> get_comparison(vector<string> linear_result, vector<string> falconn_result){
+    uint64_t fp = 0, fn = 0;
+    vector<uint64_t> * linear_result_hashes = &(hashify_vector(linear_result));
+    vector<uint64_t> * falconn_result_hashes = &(hashify_vector(falconn_result));
+
+    for(uint64_t hash: *falconn_result_hashes){
+        if(find(linear_result_hashes->begin(), linear_result_hashes->end(), hash) == linear_result_hashes->end()){
+            fp++;
+        }
+    }
+    for(uint64_t hash: *linear_result_hashes){
+        if(find(falconn_result_hashes->begin(), falconn_result_hashes->end(), hash) == falconn_result_hashes->end()){
+            fn++;
+        }
+    }
+    return make_pair(fp, fn);
+};
 

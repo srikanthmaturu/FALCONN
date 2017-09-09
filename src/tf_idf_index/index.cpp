@@ -181,6 +181,57 @@ void process_queries_test(index_type& tf_idf_falconn_i, vector<string>& queries,
 }
 
 template<class index_type>
+void process_queries_detailed_test(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
+    ofstream thresholds_test_results_file("thresholds_test_results");
+    vector< vector< pair<string, uint64_t > > > query_results_vector;
+    uint64_t block_size = 100000;
+    uint64_t queries_size = queries.size();
+    std::cout << queries_size << std::endl;
+    if(queries_size < block_size){
+        block_size = queries_size;
+    }
+    tf_idf_falconn_i.updateParmeters(32, 14, 6000);
+    cout << "Current LSH Parameters: " << endl;
+    tf_idf_falconn_i.printLSHConstructionParameters();
+    tf_idf_falconn_i.construct_table();
+    vector<vector<uint64_t>> queries_linear_results(queries.size(),vector<uint64_t>(3,0));
+    uint64_t extra_block = queries_size % block_size;
+    uint64_t number_of_blocks =  queries_size / block_size;
+
+    if(extra_block > 0) {
+        number_of_blocks++;
+    }
+    cout << "Query Index" << ",";
+    for(double th = 10; th <= 150; th += 10) {
+        cout << "Threshold " << th << "(candidates_tp_fp)" ;
+        if(th < 150){
+            thresholds_test_results_file << ",";
+        }
+    }
+    for(uint64_t bi = 0; bi < number_of_blocks; bi++){
+        uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
+        query_results_vector.resize(block_size);
+        //#pragma omp parallel for
+        for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
+            auto linear_res = tf_idf_falconn_i.get_nearest_neighbours_by_linear_method(queries[i], 30);
+            cout << i << ",";
+            for(double th = 10; th <= 150; th += 10) {
+                tf_idf_falconn_i.setThreshold(th/100.0);
+                auto res = tf_idf_falconn_i.match(queries[i]);
+                auto fp_fn_pair = get_comparison(res.second, linear_res);
+                thresholds_test_results_file << res.second.size() << "," << fp_fn_pair.first << "," << fp_fn_pair.second;
+                if(th < 150){
+                    thresholds_test_results_file << ",";
+                }
+            }
+            thresholds_test_results_file << endl;
+        }
+        query_results_vector.clear();
+    }
+}
+
+
+template<class index_type>
 void process_queries(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
     vector< vector< pair<string, uint64_t > > > query_results_vector;
     uint64_t block_size = 100000;
@@ -306,7 +357,7 @@ int main(int argc, char* argv[]){
         if(filter_enabled == "1"){
             cout << "Filter enabled. Filtering based on edit-distance. Only kmers with least edit-distance to query is outputted." << endl;
             if(argc == 5){
-                process_queries_test(tf_idf_falconn_i, queries, results_file);
+                process_queries_detailed_test(tf_idf_falconn_i, queries, results_file);
             }
             else{
                 process_queries(tf_idf_falconn_i, queries, results_file);

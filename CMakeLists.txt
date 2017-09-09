@@ -32,6 +32,8 @@ else()
     message("Boost not found")
 endif()
 
+add_library(xxhash src/tf_idf_index/xxhash.c)
+
 ADD_SUBDIRECTORY(lib)
 
 FILE(STRINGS ${CMAKE_HOME_DIRECTORY}/exp0.config exp0.lines REGEX "^[^#].*")
@@ -53,7 +55,7 @@ FOREACH(line ${exp0.lines})
     STRING(REGEX REPLACE "(.*)<(.*)>" "\\1" point_type ${POINT_TYPE})
     SET(exec ${index_name}_NGL_${NGRAM_LENGTH}_UTD_${USE_TDFS}_UIIDF_${USE_IIDF}_NHB_${NUMBER_OF_HASH_BITS}_NP_${NUMBER_OF_PROBES}_TH_${THRESHOLD}_PT_${point_type})
     ADD_EXECUTABLE(${exec} src/tf_idf_index/index.cpp)
-    TARGET_LINK_LIBRARIES(${exec} ${Boost_LIBRARIES})
+    TARGET_LINK_LIBRARIES(${exec} ${Boost_LIBRARIES} xxhash)
     SET_PROPERTY(TARGET ${exec} PROPERTY COMPILE_DEFINITIONS
             INDEX_NAME="${index_name}"
             INDEX_TYPE=${index_type}

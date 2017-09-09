@@ -82,6 +82,10 @@ namespace tf_idf_falconn_index {
             num_probes = np;
         }
 
+        void setThreshold(double_t threshold){
+            threshold = threshold;
+        }
+
         typedef point_type_t point_type;
         typedef vector<point_type> Dataset;
 
@@ -320,27 +324,22 @@ namespace tf_idf_falconn_index {
             }
         }
 
-        std::pair<uint64_t, uint64_t> count_nearest_neighbours(std::string query) {
+        std::vector<string>& get_nearest_neighbours_by_linear_method(std::string query, uint64_t edit_distance_threshold) {
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
-            std::pair<uint64_t, uint64_t> nnPair;
-            uint8_t minEd = 100;
+            std::vector<std::string> * nearest_neighbours = new std::vector<std::string>();
             #pragma omp parallel for
             for (uint64_t i = 0; i < original_data.size(); i++) {
                 auto edit_distance = uiLevenshteinDistance(query, original_data[i]);
                 if(edit_distance == 0){
                     continue;
                 }
-                if(edit_distance < minEd){
-                    minEd = edit_distance;
-                    nnPair.first = edit_distance;
-                    nnPair.second = 0;
-                }else if(edit_distance > minEd){
+                else if(edit_distance <= edit_distance_threshold){
+                    nearest_neighbours->push_back(original_data[i]);
+                }else {
                     continue;
                 }
-                nnPair.second += 1;
             }
-
-            return nnPair;
+            return *nearest_neighbours;
         }
     };
 }
