@@ -83,7 +83,7 @@ namespace tf_idf_falconn_index {
         }
 
         void setThreshold(double_t threshold){
-            threshold = threshold;
+            this->threshold = threshold;
         }
 
         typedef point_type_t point_type;
