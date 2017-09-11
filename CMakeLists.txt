@@ -22,6 +22,7 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 set(BOOST_LIBRARYDIR "/util/opt/boost/1.59/gcc/5.4/lib")
 set(BOOST_INCLUDEDIR "/util/opt/boost/1.59/gcc/5.4/include")
 
+#[[
 find_package(Boost COMPONENTS serialization filesystem REQUIRED)
 
 if(Boost_FOUND)
@@ -31,6 +32,7 @@ if(Boost_FOUND)
 else()
     message("Boost not found")
 endif()
+]]
 
 add_library(xxhash src/tf_idf_index/xxhash.c)
 
@@ -70,6 +72,7 @@ FOREACH(line ${exp0.lines})
             )
     SET(nb_exec ${exec}_SV_NONBOOSTVERSION)
     ADD_EXECUTABLE(${nb_exec} src/tf_idf_index/index.cpp)
+    TARGET_LINK_LIBRARIES(${nb_exec} xxhash)
     SET_PROPERTY(TARGET ${nb_exec} PROPERTY COMPILE_DEFINITIONS
             NGRAM_LENGTH=${NGRAM_LENGTH}
             USE_TDFS=${USE_TDFS}
