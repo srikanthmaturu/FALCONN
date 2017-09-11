@@ -123,6 +123,6 @@ tuple<uint64_t, uint64_t, uint64_t> get_comparison(vector<string> linear_result,
             fn++;
         }
     }
-    return make_tuple(falconn_result_hashes.size(),fp, fn);
+    return make_tuple(falconn_result_hashes->size(),fp, fn);
 };
 
