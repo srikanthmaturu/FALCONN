@@ -201,20 +201,21 @@ void process_queries_detailed_test(index_type& tf_idf_falconn_i, vector<string>&
     if(extra_block > 0) {
         number_of_blocks++;
     }
-    thresholds_test_results_file << "Query Index" << ",";
+    thresholds_test_results_file << "Query Index, tp,";
     for(double th = 10; th <= 150; th += 10) {
-        thresholds_test_results_file << "Threshold " << th << "(candidates_tp_fp)" ;
+        thresholds_test_results_file << "Threshold " << th / 100.0 << "(candidates_fp_fn),," ;
         if(th < 150){
             thresholds_test_results_file << ",";
         }
     }
+    thresholds_test_results_file << endl;
     for(uint64_t bi = 0; bi < number_of_blocks; bi++){
         uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
         query_results_vector.resize(block_size);
         //#pragma omp parallel for
         for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
             auto linear_res = tf_idf_falconn_i.get_nearest_neighbours_by_linear_method(queries[i], 30);
-            thresholds_test_results_file << i << ",";
+            thresholds_test_results_file << i << "," << linear_res.size() << ",";
             for(double th = 10; th <= 150; th += 10) {
                 tf_idf_falconn_i.setThreshold(th/100.0);
                 auto res = tf_idf_falconn_i.match(queries[i]);
