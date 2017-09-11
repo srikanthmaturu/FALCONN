@@ -219,8 +219,8 @@ void process_queries_detailed_test(index_type& tf_idf_falconn_i, vector<string>&
             for(double th = 10; th <= 150; th += 10) {
                 tf_idf_falconn_i.setThreshold(th/100.0);
                 auto res = tf_idf_falconn_i.match(queries[i]);
-                auto fp_fn_pair = get_comparison(linear_res, res.second);
-                thresholds_test_results_file << res.second.size() << "," << fp_fn_pair.first << "," << fp_fn_pair.second;
+                auto cs_fp_fn_pair = get_comparison(linear_res, res.second);
+                thresholds_test_results_file << std::get<0>(cs_fp_fn_pair) << "," << std::get<1>(cs_fp_fn_pair) << "," << std::get<2>(cs_fp_fn_pair);
                 if(th < 150){
                     thresholds_test_results_file << ",";
                 }
