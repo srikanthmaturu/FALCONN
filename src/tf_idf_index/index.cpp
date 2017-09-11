@@ -203,7 +203,7 @@ void process_queries_detailed_test(index_type& tf_idf_falconn_i, vector<string>&
     }
     thresholds_test_results_file << "Query Index, tp,";
     for(double th = 10; th <= 150; th += 10) {
-        thresholds_test_results_file << "Threshold " << th / 100.0 << "(candidates_fp_fn),," ;
+        thresholds_test_results_file << "Threshold-" << th / 100.0 << " (candidates_fp_fn),," ;
         if(th < 150){
             thresholds_test_results_file << ",";
         }
@@ -219,7 +219,7 @@ void process_queries_detailed_test(index_type& tf_idf_falconn_i, vector<string>&
             for(double th = 10; th <= 150; th += 10) {
                 tf_idf_falconn_i.setThreshold(th/100.0);
                 auto res = tf_idf_falconn_i.match(queries[i]);
-                auto fp_fn_pair = get_comparison(res.second, linear_res);
+                auto fp_fn_pair = get_comparison(linear_res, res.second);
                 thresholds_test_results_file << res.second.size() << "," << fp_fn_pair.first << "," << fp_fn_pair.second;
                 if(th < 150){
                     thresholds_test_results_file << ",";
