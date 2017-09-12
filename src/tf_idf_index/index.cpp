@@ -364,7 +364,7 @@ int main(int argc, char* argv[]){
         if(filter_enabled == "1"){
             cout << "Filter enabled. Filtering based on edit-distance. Only kmers with least edit-distance to query is outputted." << endl;
             if(argc == 5){
-                ofstream linear_results_file("linear_test_results")
+                ofstream linear_results_file("linear_test_results");
                 process_queries_linear_test(tf_idf_falconn_i, queries, linear_results_file);
             }
             else{
