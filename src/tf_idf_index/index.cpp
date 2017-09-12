@@ -79,7 +79,7 @@ void load_sequences(string sequences_file, vector<string>& sequences){
 }
 
 template<class index_type>
-void process_queries_test(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
+void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
     ofstream box_test_results_file("box_test_results");
     vector< vector< pair<string, uint64_t > > > query_results_vector;
     uint64_t block_size = 100000;
@@ -181,7 +181,7 @@ void process_queries_test(index_type& tf_idf_falconn_i, vector<string>& queries,
 }
 
 template<class index_type>
-void process_queries_detailed_test(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
+void process_queries_thresholds_test(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
     ofstream thresholds_test_results_file("thresholds_test_results");
     vector< vector< pair<string, uint64_t > > > query_results_vector;
     uint64_t block_size = 100000;
@@ -231,6 +231,12 @@ void process_queries_detailed_test(index_type& tf_idf_falconn_i, vector<string>&
     }
 }
 
+template<class index_type>
+void process_queries_linear_test(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
+    for(string query: queries){
+        tf_idf_falconn_i.linear_test(query, results_file);
+    }
+}
 
 template<class index_type>
 void process_queries(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
@@ -358,7 +364,8 @@ int main(int argc, char* argv[]){
         if(filter_enabled == "1"){
             cout << "Filter enabled. Filtering based on edit-distance. Only kmers with least edit-distance to query is outputted." << endl;
             if(argc == 5){
-                process_queries_detailed_test(tf_idf_falconn_i, queries, results_file);
+                ofstream linear_results_file("linear_test_results")
+                process_queries_linear_test(tf_idf_falconn_i, queries, linear_results_file);
             }
             else{
                 process_queries(tf_idf_falconn_i, queries, results_file);

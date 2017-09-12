@@ -1,2 +1,3 @@
 all:
-	g++ -std=c++11 -Wall -O3 -march=native index.cpp -o tf_idf_falconn_index -I ../include -I ../../external/eigen -pthread -D USE_TDFS=true -D USE_IIDF=true -D THRESHOLD=90 -D NGRAM_LENGTH=3 -D POINT_TYPE=SparseVectorFloat
+	g++ -std=c++11 -Wall -O3 -march=native index.cpp -o tf_idf_falconn_index -I ../include -I ../../external/eigen -pthread -D USE_TDFS=false -D \
+	USE_IIDF=false -D NGRAM_LENGTH=3 -D POINT_TYPE=DenseVectorFloat -D NUMBER_OF_HASH_BITS=14 -D NUMBER_OF_PROBES=7000 -D THRESHOLD=50
