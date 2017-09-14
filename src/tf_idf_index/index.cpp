@@ -156,14 +156,6 @@ void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& quer
                         }
                         cout << "Processed query: " << i << " Candidates: " << res.second.size() << " Actual Matches: " << actual_matches << " Real Matches: " << nnPair.second << endl;
                     }
-
-                    for(uint64_t i=bi * block_size, j = 0; i < block_end; i++, j++){
-                        results_file << ">" << queries[i] << endl;
-                        cout << "Stored results of " << i << endl;
-                        for(size_t k=0; k<query_results_vector[j].size(); k++){
-                            results_file << "" << query_results_vector[j][k].first.c_str() << "  " << query_results_vector[j][k].second << endl;
-                        }
-                    }
                     query_results_vector.clear();
                 }
                 auto stop = timer::now();
