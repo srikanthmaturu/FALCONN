@@ -46,7 +46,7 @@ namespace tf_idf_falconn_index {
             construct_dataset(data);
             params.dimension = dataset[0].size();
             params.lsh_family = falconn::LSHFamily::CrossPolytope;
-            params.l = 64;
+            params.l = 32;
             params.distance_function = falconn::DistanceFunction::EuclideanSquared;
 
             if (std::is_same<point_type, DenseVectorFloat>::value) {
