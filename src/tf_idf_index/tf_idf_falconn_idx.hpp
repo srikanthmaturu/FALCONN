@@ -313,10 +313,11 @@ namespace tf_idf_falconn_index {
             std::vector<std::string> results(dataset.size());
             #pragma omp parallel for
             for (uint64_t i = 0; i < original_data.size(); i++) {
-                auto cosine_distance = acos(dataset[i].dot(query_tf_idf_vector))/ 3.14;
+                auto cosine_angle = acos(dataset[i].dot(query_tf_idf_vector))/ 3.14;
+                auto cosine_distance = dataset[i].dot(query_tf_idf_vector);
                 //auto cosine_distance = dataset[i].dot(query_tf_idf_vector);
                 auto euclidean_distance = (dataset[i] - query_tf_idf_vector).squaredNorm();
-                string result =  to_string(uiLevenshteinDistance(query, original_data[i])) + "," + to_string(cosine_distance) + "," + to_string(euclidean_distance) + "\n";
+                string result =  to_string(uiLevenshteinDistance(query, original_data[i])) + "," + to_string(cosine_distance) + "," + to_string(cosine_angle) + "," + to_string(euclidean_distance) + "\n";
                 results[i] = result;
             }
 

@@ -79,7 +79,7 @@ void load_sequences(string sequences_file, vector<string>& sequences){
 }
 
 template<class index_type>
-void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
+void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& queries){
     ofstream box_test_results_file("box_test_results");
     vector< vector< pair<string, uint64_t > > > query_results_vector;
     uint64_t block_size = 100000;
@@ -181,7 +181,7 @@ void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& quer
 }
 
 template<class index_type>
-void process_queries_thresholds_test(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
+void process_queries_thresholds_test(index_type& tf_idf_falconn_i, vector<string>& queries){
     ofstream thresholds_test_results_file("thresholds_test_results");
     vector< vector< pair<string, uint64_t > > > query_results_vector;
     uint64_t block_size = 100000;
@@ -232,7 +232,8 @@ void process_queries_thresholds_test(index_type& tf_idf_falconn_i, vector<string
 }
 
 template<class index_type>
-void process_queries_linear_test(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
+void process_queries_linear_test(index_type& tf_idf_falconn_i, vector<string>& queries){
+    ofstream results_file("linear_test_results");
     for(string query: queries){
         tf_idf_falconn_i.linear_test(query, results_file);
     }
@@ -310,7 +311,7 @@ int main(int argc, char* argv[]){
 #endif
 
     if ( argc < 4 ) {
-        cout << "Usage: ./" << argv[0] << " sequences_file query_file filter_enabled [box_test]" << endl;
+        cout << "Usage: ./" << argv[0] << " sequences_file query_file filter_enabled [type_of_test]" << endl;
         return 1;
     }
 
@@ -364,8 +365,17 @@ int main(int argc, char* argv[]){
         if(filter_enabled == "1"){
             cout << "Filter enabled. Filtering based on edit-distance. Only kmers with least edit-distance to query is outputted." << endl;
             if(argc == 5){
-                ofstream linear_results_file("linear_test_results");
-                process_queries_linear_test(tf_idf_falconn_i, queries, linear_results_file);
+                switch(stoi(argv[4])){
+                    case 0:
+                        process_queries_box_test(tf_idf_falconn_i, queries);
+                        break;
+                    case 1:
+                        process_queries_thresholds_test(tf_idf_falconn_i, queries);
+                        break;
+                    case 2:
+                        process_queries_linear_test(tf_idf_falconn_i, queries);
+                        break;
+                }
             }
             else{
                 process_queries(tf_idf_falconn_i, queries, results_file);
