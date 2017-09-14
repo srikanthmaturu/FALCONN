@@ -248,10 +248,11 @@ void process_queries(index_type& tf_idf_falconn_i, vector<string>& queries, ofst
         number_of_blocks++;
     }
     auto start = timer::now();
+    #pragma omp parallel
     for(uint64_t bi = 0; bi < number_of_blocks; bi++){
         uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
         query_results_vector.resize(block_size);
-        //#pragma omp parallel for
+        #pragma omp for
         for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
             auto res = tf_idf_falconn_i.match(queries[i]);
 
@@ -272,6 +273,7 @@ void process_queries(index_type& tf_idf_falconn_i, vector<string>& queries, ofst
             }
             cout << "Processed query: " << i << " Candidates: " << res.second.size() << endl;
         }
+        #pragma omp barrier
 
         for(uint64_t i=bi * block_size, j = 0; i < block_end; i++, j++){
             results_file << ">" << queries[i] << endl;
