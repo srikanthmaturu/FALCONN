@@ -343,6 +343,29 @@ namespace tf_idf_falconn_index {
             }
             return *nearest_neighbours;
         }
+
+        std::pair<uint64_t, uint64_t> count_nearest_neighbours(std::string query) {
+            auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
+            std::pair<uint64_t, uint64_t> nnPair;
+            uint8_t minEd = 100;
+#pragma omp parallel for
+            for (uint64_t i = 0; i < original_data.size(); i++) {
+                auto edit_distance = uiLevenshteinDistance(query, original_data[i]);
+                if(edit_distance == 0){
+                    continue;
+                }
+                if(edit_distance < minEd){
+                    minEd = edit_distance;
+                    nnPair.first = edit_distance;
+                    nnPair.second = 0;
+                }else if(edit_distance > minEd){
+                    continue;
+                }
+                nnPair.second += 1;
+            }
+
+            return nnPair;
+        }
     };
 }
 
