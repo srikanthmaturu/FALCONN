@@ -152,9 +152,6 @@ namespace tf_idf_falconn_index {
             //std::cout << std::endl;
             std::vector<int32_t> nearestNeighbours;
             query_object->find_near_neighbors(query_tf_idf_vector, threshold, &nearestNeighbours);
-            std::sort(nearestNeighbours.begin(), nearestNeighbours.end());
-            auto end = std::unique(nearestNeighbours.begin(), nearestNeighbours.end());
-            nearestNeighbours.resize(end-nearestNeighbours.begin());
             std::vector<std::string> matches;
             for (auto i:nearestNeighbours) {
                 matches.push_back(original_data[i]);

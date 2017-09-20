@@ -103,15 +103,7 @@ vector<uint64_t>& hashify_vector(vector<string>& sequences){
 tuple<uint64_t, uint64_t, uint64_t> get_comparison(vector<string> linear_result, vector<string> falconn_result){
     uint64_t fp = 0, fn = 0;
     vector<uint64_t> * linear_result_hashes = &(hashify_vector(linear_result));
-    vector<uint64_t> * falconn_result_hashes_with_duplicates = &(hashify_vector(falconn_result));
-    vector<uint64_t> * falconn_result_hashes = new vector<uint64_t>();
-
-    for(uint64_t hash: *falconn_result_hashes_with_duplicates){
-        if(find(falconn_result_hashes->begin(), falconn_result_hashes->end(), hash) == falconn_result_hashes->end()){
-            falconn_result_hashes->push_back(hash);
-        }
-    }
-
+    vector<uint64_t> * falconn_result_hashes = &(hashify_vector(falconn_result));
 
     for(uint64_t hash: *falconn_result_hashes){
         if(find(linear_result_hashes->begin(), linear_result_hashes->end(), hash) == linear_result_hashes->end()){
