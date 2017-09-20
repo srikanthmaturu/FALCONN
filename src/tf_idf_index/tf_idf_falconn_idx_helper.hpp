@@ -107,7 +107,7 @@ tuple<uint64_t, uint64_t, uint64_t> get_comparison(vector<string> linear_result,
 
     std::sort(falconn_result_hashes->begin(), falconn_result_hashes->end());
     auto end = std::unique(falconn_result_hashes->begin(), falconn_result_hashes->end());
-    std::cout << "Duplicates: " << end - falconn_result_hashes->begin() << std::endl;
+    std::cout << "Duplicates: " << alconn_result_hashes->size() - (end - falconn_result_hashes->begin()) << std::endl;
 
 
     for(uint64_t hash: *falconn_result_hashes){
