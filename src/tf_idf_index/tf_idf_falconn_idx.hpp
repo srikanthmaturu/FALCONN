@@ -353,11 +353,12 @@ namespace tf_idf_falconn_index {
             for (uint64_t i = 0; i < original_data.size(); i++) {
                 auto edit_distance = uiLevenshteinDistance(query, original_data[i]);
                 auto cosine_distance = dataset[i].dot(query_tf_idf_vector);
+                auto euclidean_distance = (dataset[i] - query_tf_idf_vector).squaredNorm();
                 if(edit_distance == 0){
                     continue;
                 }
                 else if(edit_distance <= edit_distance_threshold){
-                    nearest_neighbours->push_back(original_data[i] + " " + to_string(cosine_distance) + " " + to_string(edit_distance));
+                    nearest_neighbours->push_back(original_data[i] + " " + to_string(cosine_distance) + " " + to_string(edit_distance) + " " + to_string(euclidean_distance));
                 }else {
                     continue;
                 }
@@ -374,11 +375,12 @@ namespace tf_idf_falconn_index {
             for (uint64_t i = 0; i < original_data.size(); i++) {
                 auto edit_distance = uiLevenshteinDistance(query, original_data[i]);
                 auto cosine_distance = dataset[i].dot(query_tf_idf_vector);
+                auto euclidean_distance = (dataset[i] - query_tf_idf_vector).squaredNorm();
                 if(cosine_distance == 0){
                     continue;
                 }
                 else if(cosine_distance >= cosine_distance_threshold){
-                    std::string t = original_data[i] + " " + to_string(cosine_distance) + " " + to_string(edit_distance);
+                    std::string t = original_data[i] + " " + to_string(cosine_distance) + " " + to_string(edit_distance) + " " + to_string(euclidean_distance);
                     #pragma omp ordered
                     {
                         nearest_neighbours->push_back(t);
@@ -398,7 +400,8 @@ namespace tf_idf_falconn_index {
             for(auto falconn_match: match(query).second){
                 auto edit_distance = uiLevenshteinDistance(query, falconn_match);
                 auto cosine_distance = query_tf_idf_vector.dot(getQuery_tf_idf_vector(falconn_match));
-                std::string t = falconn_match + " " + to_string(cosine_distance) + " " + to_string(edit_distance);
+                auto euclidean_distance = (getQuery_tf_idf_vector(falconn_match) - query_tf_idf_vector).squaredNorm();
+                std::string t = falconn_match + " " + to_string(cosine_distance) + " " + to_string(edit_distance) + " " + to_string(euclidean_distance);
                 nearest_neighbours->push_back(t);
             }
 

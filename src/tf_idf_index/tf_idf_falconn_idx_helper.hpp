@@ -95,7 +95,7 @@ size_t uiLevenshteinDistance(const std::string &s1, const std::string &s2)
 vector<uint64_t>& hashify_vector(vector<string>& sequences){
     vector<uint64_t> * hashes = new vector<uint64_t>();
     for(string s: sequences){
-        hashes->push_back(XXH64(s.c_str(), 5, 0xcc9e2d51));
+        hashes->push_back(XXH64(s.c_str(), 50, 0xcc9e2d51));
     }
     return *hashes;
 }
@@ -104,6 +104,11 @@ tuple<uint64_t, uint64_t, uint64_t> get_comparison(vector<string> linear_result,
     uint64_t fp = 0, fn = 0;
     vector<uint64_t> * linear_result_hashes = &(hashify_vector(linear_result));
     vector<uint64_t> * falconn_result_hashes = &(hashify_vector(falconn_result));
+
+    std::sort(falconn_result_hashes->begin(), falconn_result_hashes->end());
+    auto end = std::unique(falconn_result_hashes->begin(), falconn_result_hashes->end());
+    std::cout << "Duplicates: " << end - falconn_result_hashes.begin() << std::endl;
+
 
     for(uint64_t hash: *falconn_result_hashes){
         if(find(linear_result_hashes->begin(), linear_result_hashes->end(), hash) == linear_result_hashes->end()){
