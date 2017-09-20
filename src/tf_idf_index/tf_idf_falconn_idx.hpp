@@ -345,9 +345,9 @@ namespace tf_idf_falconn_index {
             return *nearest_neighbours;
         }
 
-        std::vector<string>& get_nearest_neighbours_by_linear_method_using_multiple_methods(ofstream& results_file, std::string query, uint64_t edit_distance_threshold, uint64_t cosine_distance_threshold) {
+        void get_nearest_neighbours_by_linear_method_using_multiple_methods(ofstream& results_file, std::string query, uint64_t edit_distance_threshold, uint64_t cosine_distance_threshold) {
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
-            std::vector<std::tuple<string, double_t, int64_t>> * nearest_neighbours = new std::vector<std::string>();
+            std::vector<std::tuple<string, double_t, int64_t>> * nearest_neighbours = new std::vector<std::tuple<string, double_t, int64_t>>();
 
             #pragma omp parallel for
             for (uint64_t i = 0; i < original_data.size(); i++) {
@@ -407,8 +407,6 @@ namespace tf_idf_falconn_index {
             for(auto item: *nearest_neighbours){
                 results_file << std::get<0>(item) << " " << std::get<1>(item) << " " << std::get<2>(item) << endl;
             }
-
-            return *nearest_neighbours;
         }
 
         std::pair<uint64_t, uint64_t> count_nearest_neighbours(std::string query) {
