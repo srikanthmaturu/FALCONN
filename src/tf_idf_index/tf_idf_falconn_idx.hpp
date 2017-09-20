@@ -368,7 +368,7 @@ namespace tf_idf_falconn_index {
                 results_file << std::get<0>(item) << " " << std::get<1>(item) << " " << std::get<2>(item) << endl;
             }
 
-            nearest_neighbours->clear();
+            nearest_neighbours->erase(nearest_neighbours->begin(), nearest_neighbours->end());
 
             #pragma omp parallel for
             for (uint64_t i = 0; i < original_data.size(); i++) {
@@ -384,11 +384,12 @@ namespace tf_idf_falconn_index {
                 }
             }
 
+
             results_file << "Cosine_Similarity based matches:" << endl;
             for(auto item: *nearest_neighbours){
                 results_file << std::get<0>(item) << " " << std::get<1>(item) << " " << std::get<2>(item) << endl;
             }
-            nearest_neighbours->clear();
+            nearest_neighbours->erase(nearest_neighbours->begin(), nearest_neighbours->end());
 
             for(auto falconn_match: match(query).second){
                 auto edit_distance = uiLevenshteinDistance(query, falconn_match);
