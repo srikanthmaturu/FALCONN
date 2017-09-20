@@ -232,6 +232,16 @@ void process_queries_linear_test(index_type& tf_idf_falconn_i, vector<string>& q
 }
 
 template<class index_type>
+void process_queries_with_multiple_methods(index_type& tf_idf_falconn_i, vector<string>& queries){
+    ofstream results_file("multiple_methods_results.txt");
+    for(string query: queries){
+        results_file << ">" << query << endl;
+        tf_idf_falconn_i.get_nearest_neighbours_by_linear_method_using_multiple_methods(results_file, query, 30, 0.9);
+
+    }
+}
+
+template<class index_type>
 void process_queries(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
     vector< vector< pair<string, uint64_t > > > query_results_vector;
     uint64_t block_size = 100000;

@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <string>
 #include <math.h>
+#include <tuple>
 #include "tf_idf_falconn_idx_helper.hpp"
 
 #ifdef CUSTOM_BOOST_ENABLED
@@ -344,11 +345,77 @@ namespace tf_idf_falconn_index {
             return *nearest_neighbours;
         }
 
+        std::vector<string>& get_nearest_neighbours_by_linear_method_using_multiple_methods(ofstream& results_file, std::string query, uint64_t edit_distance_threshold, uint64_t cosine_distance_threshold) {
+            auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
+            std::vector<std::tuple<string, double_t, int64_t>> * nearest_neighbours = new std::vector<std::string>();
+
+            #pragma omp parallel for
+            for (uint64_t i = 0; i < original_data.size(); i++) {
+                auto edit_distance = uiLevenshteinDistance(query, original_data[i]);
+                auto cosine_distance = dataset[i].dot(query_tf_idf_vector);
+                if(edit_distance == 0){
+                    continue;
+                }
+                else if(edit_distance <= edit_distance_threshold){
+                    nearest_neighbours->push_back(std::make_tuple(original_data[i], cosine_distance, edit_distance));
+                }else {
+                    continue;
+                }
+            }
+
+            results_file << "Edit_distance based matches:" << endl;
+            for(auto item: nearest_neighbours){
+                results_file << std::get<0>(item) << " " << std::get<1>(item) << " " << std::get<2>(item) << endl;
+            }
+
+            nearest_neighbours->clear();
+
+            #pragma omp parallel for
+            for (uint64_t i = 0; i < original_data.size(); i++) {
+                auto edit_distance = uiLevenshteinDistance(query, original_data[i]);
+                auto cosine_distance = dataset[i].dot(query_tf_idf_vector);
+                if(cosine_distance == 0){
+                    continue;
+                }
+                else if(cosine_distance >= cosine_distance_threshold){
+                    nearest_neighbours->push_back(std::make_tuple(original_data[i], cosine_distance, edit_distance));
+                }else {
+                    continue;
+                }
+            }
+
+            results_file << "Cosine_Similarity based matches:" << endl;
+            for(auto item: nearest_neighbours){
+                results_file << std::get<0>(item) << " " << std::get<1>(item) << " " << std::get<2>(item) << endl;
+            }
+            nearest_neighbours->clear();
+
+            for(auto falconn_match: match(query).second){
+                auto edit_distance = uiLevenshteinDistance(query, falconn_match);
+                auto cosine_distance = query_tf_idf_vector.dot(getQuery_tf_idf_vector(falconn_match));
+                if(cosine_distance == 0){
+                    continue;
+                }
+                else if(cosine_distance >= cosine_distance_threshold){
+                    nearest_neighbours->push_back(std::make_tuple(original_data[i], cosine_distance, edit_distance));
+                }else {
+                    continue;
+                }
+            }
+
+            results_file << "Falconn(Th:0.5) based matches:" << endl;
+            for(auto item: nearest_neighbours){
+                results_file << std::get<0>(item) << " " << std::get<1>(item) << " " << std::get<2>(item) << endl;
+            }
+
+            return *nearest_neighbours;
+        }
+
         std::pair<uint64_t, uint64_t> count_nearest_neighbours(std::string query) {
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
             std::pair<uint64_t, uint64_t> nnPair;
             uint8_t minEd = 100;
-#pragma omp parallel for
+            #pragma omp parallel for
             for (uint64_t i = 0; i < original_data.size(); i++) {
                 auto edit_distance = uiLevenshteinDistance(query, original_data[i]);
                 if(edit_distance == 0){
