@@ -182,7 +182,7 @@ void process_queries_thresholds_test(index_type& tf_idf_falconn_i, vector<string
     if(queries_size < block_size){
         block_size = queries_size;
     }
-    tf_idf_falconn_i.updateParmeters(32, 14, 6000);
+    tf_idf_falconn_i.updateParmeters(32, 14, 7000);
     cout << "Current LSH Parameters: " << endl;
     tf_idf_falconn_i.printLSHConstructionParameters();
     tf_idf_falconn_i.construct_table();
