@@ -398,15 +398,8 @@ namespace tf_idf_falconn_index {
             for(auto falconn_match: match(query).second){
                 auto edit_distance = uiLevenshteinDistance(query, falconn_match);
                 auto cosine_distance = query_tf_idf_vector.dot(getQuery_tf_idf_vector(falconn_match));
-                if(cosine_distance == 0){
-                    continue;
-                }
-                else if(cosine_distance >= cosine_distance_threshold){
-                    std::string t = falconn_match + " " + to_string(cosine_distance) + " " + to_string(edit_distance);
-                    nearest_neighbours->push_back(t);
-                }else {
-                    continue;
-                }
+                std::string t = falconn_match + " " + to_string(cosine_distance) + " " + to_string(edit_distance);
+                nearest_neighbours->push_back(t);
             }
 
             results_file << "Falconn(Th:0.5) based matches:" << std::endl;
