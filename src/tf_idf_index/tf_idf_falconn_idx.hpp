@@ -378,7 +378,8 @@ namespace tf_idf_falconn_index {
                     continue;
                 }
                 else if(cosine_distance >= cosine_distance_threshold){
-                    nearest_neighbours->push_back(original_data[i] + " " + to_string(cosine_distance) + " " + to_string(edit_distance));
+                    std::string t = original_data[i] + " " + to_string(cosine_distance) + " " + to_string(edit_distance);
+                    nearest_neighbours->push_back(t);
                 }else {
                     continue;
                 }
@@ -398,7 +399,8 @@ namespace tf_idf_falconn_index {
                     continue;
                 }
                 else if(cosine_distance >= cosine_distance_threshold){
-                    nearest_neighbours->push_back(falconn_match + " " + to_string(cosine_distance) + " " + to_string(edit_distance));
+                    std::string t = falconn_match + " " + to_string(cosine_distance) + " " + to_string(edit_distance);
+                    nearest_neighbours->push_back(t);
                 }else {
                     continue;
                 }
