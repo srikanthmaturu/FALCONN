@@ -95,7 +95,7 @@ size_t uiLevenshteinDistance(const std::string &s1, const std::string &s2)
 vector<uint64_t>& hashify_vector(vector<string>& sequences){
     vector<uint64_t> * hashes = new vector<uint64_t>();
     for(string s: sequences){
-        hashes->push_back(XXH64(s.c_str(), 50, 0xcc9e2d51));
+        hashes->push_back(XXH64(s.c_str(), 100, 0xcc9e2d51));
     }
     return *hashes;
 }
