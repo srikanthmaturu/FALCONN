@@ -370,7 +370,7 @@ namespace tf_idf_falconn_index {
 
             nearest_neighbours->clear();
 
-            #pragma omp parallel for
+            #pragma omp parallel for ordered
             for (uint64_t i = 0; i < original_data.size(); i++) {
                 auto edit_distance = uiLevenshteinDistance(query, original_data[i]);
                 auto cosine_distance = dataset[i].dot(query_tf_idf_vector);
@@ -379,7 +379,10 @@ namespace tf_idf_falconn_index {
                 }
                 else if(cosine_distance >= cosine_distance_threshold){
                     std::string t = original_data[i] + " " + to_string(cosine_distance) + " " + to_string(edit_distance);
-                    nearest_neighbours->push_back(t);
+                    #pragma omp ordered
+                    {
+                        nearest_neighbours->push_back(t);
+                    }
                 }else {
                     continue;
                 }
