@@ -237,7 +237,6 @@ void process_queries_with_multiple_methods(index_type& tf_idf_falconn_i, vector<
     for(string query: queries){
         results_file << ">" << query << endl;
         tf_idf_falconn_i.get_nearest_neighbours_by_linear_method_using_multiple_methods(results_file, query, 30, 0.9);
-
     }
 }
 
@@ -378,6 +377,9 @@ int main(int argc, char* argv[]){
                         break;
                     case 2:
                         process_queries_linear_test(tf_idf_falconn_i, queries);
+                        break;
+                    case 3:
+                        process_queries_with_multiple_methods(tf_idf_falconn_i, queries);
                         break;
                 }
             }

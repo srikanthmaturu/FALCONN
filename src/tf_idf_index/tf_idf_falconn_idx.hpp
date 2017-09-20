@@ -364,7 +364,7 @@ namespace tf_idf_falconn_index {
             }
 
             results_file << "Edit_distance based matches:" << endl;
-            for(auto item: nearest_neighbours){
+            for(auto item: *nearest_neighbours){
                 results_file << std::get<0>(item) << " " << std::get<1>(item) << " " << std::get<2>(item) << endl;
             }
 
@@ -385,7 +385,7 @@ namespace tf_idf_falconn_index {
             }
 
             results_file << "Cosine_Similarity based matches:" << endl;
-            for(auto item: nearest_neighbours){
+            for(auto item: *nearest_neighbours){
                 results_file << std::get<0>(item) << " " << std::get<1>(item) << " " << std::get<2>(item) << endl;
             }
             nearest_neighbours->clear();
@@ -397,14 +397,14 @@ namespace tf_idf_falconn_index {
                     continue;
                 }
                 else if(cosine_distance >= cosine_distance_threshold){
-                    nearest_neighbours->push_back(std::make_tuple(original_data[i], cosine_distance, edit_distance));
+                    nearest_neighbours->push_back(std::make_tuple(falconn_match, cosine_distance, edit_distance));
                 }else {
                     continue;
                 }
             }
 
             results_file << "Falconn(Th:0.5) based matches:" << endl;
-            for(auto item: nearest_neighbours){
+            for(auto item: *nearest_neighbours){
                 results_file << std::get<0>(item) << " " << std::get<1>(item) << " " << std::get<2>(item) << endl;
             }
 
