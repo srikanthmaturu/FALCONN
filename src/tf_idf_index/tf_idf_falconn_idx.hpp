@@ -345,7 +345,7 @@ namespace tf_idf_falconn_index {
             return *nearest_neighbours;
         }
 
-        void get_nearest_neighbours_by_linear_method_using_multiple_methods(ofstream& results_file, std::string query, uint64_t edit_distance_threshold, uint64_t cosine_distance_threshold) {
+        void get_nearest_neighbours_by_linear_method_using_multiple_methods(ofstream& results_file, std::string query, uint64_t edit_distance_threshold, double_t cosine_distance_threshold) {
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
             std::vector<std::string> * nearest_neighbours = new std::vector<std::string>();
 
