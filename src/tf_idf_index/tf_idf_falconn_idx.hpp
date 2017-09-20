@@ -347,7 +347,7 @@ namespace tf_idf_falconn_index {
 
         void get_nearest_neighbours_by_linear_method_using_multiple_methods(ofstream& results_file, std::string query, uint64_t edit_distance_threshold, uint64_t cosine_distance_threshold) {
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
-            std::vector<std::tuple<string, double_t, int64_t>> * nearest_neighbours = new std::vector<std::tuple<string, double_t, int64_t>>();
+            std::vector<std::string> * nearest_neighbours = new std::vector<std::string>();
 
             #pragma omp parallel for
             for (uint64_t i = 0; i < original_data.size(); i++) {
@@ -357,20 +357,18 @@ namespace tf_idf_falconn_index {
                     continue;
                 }
                 else if(edit_distance <= edit_distance_threshold){
-                    nearest_neighbours->push_back(std::make_tuple(original_data[i], cosine_distance, edit_distance));
+                    nearest_neighbours->push_back(original_data[i] + " " + to_string(cosine_distance) + " " + to_string(edit_distance));
                 }else {
                     continue;
                 }
             }
 
-            results_file << "Edit_distance based matches:" << endl;
+            results_file << "Edit_distance based matches:" << std::endl;
             for(auto item: *nearest_neighbours){
-                results_file << std::get<0>(item) << " " << std::get<1>(item) << " " << std::get<2>(item) << endl;
+                results_file << item << std::endl;
             }
 
-            //nearest_neighbours->erase(nearest_neighbours->begin(), nearest_neighbours->end());
-
-            std::vector<std::tuple<string, double_t, int64_t>> * nearest_neighbours2 = new std::vector<std::tuple<string, double_t, int64_t>>();
+            nearest_neighbours->clear();
 
             #pragma omp parallel for
             for (uint64_t i = 0; i < original_data.size(); i++) {
@@ -380,19 +378,18 @@ namespace tf_idf_falconn_index {
                     continue;
                 }
                 else if(cosine_distance >= cosine_distance_threshold){
-                    nearest_neighbours2->push_back(std::make_tuple(original_data[i], cosine_distance, edit_distance));
+                    nearest_neighbours->push_back(original_data[i] + " " + to_string(cosine_distance) + " " + to_string(edit_distance));
                 }else {
                     continue;
                 }
             }
 
-
-            results_file << "Cosine_Similarity based matches:" << endl;
-            for(auto item: *nearest_neighbours2){
-                results_file << std::get<0>(item) << " " << std::get<1>(item) << " " << std::get<2>(item) << endl;
+            results_file << "Cosine_Similarity based matches:" << std::endl;
+            for(auto item: *nearest_neighbours){
+                results_file << item << std::endl;
             }
 
-            std::vector<std::tuple<string, double_t, int64_t>> * nearest_neighbours3 = new std::vector<std::tuple<string, double_t, int64_t>>();
+            nearest_neighbours->clear();
 
             for(auto falconn_match: match(query).second){
                 auto edit_distance = uiLevenshteinDistance(query, falconn_match);
@@ -401,15 +398,15 @@ namespace tf_idf_falconn_index {
                     continue;
                 }
                 else if(cosine_distance >= cosine_distance_threshold){
-                    nearest_neighbours3->push_back(std::make_tuple(falconn_match, cosine_distance, edit_distance));
+                    nearest_neighbours->push_back(falconn_match + " " + to_string(cosine_distance) + " " + to_string(edit_distance));
                 }else {
                     continue;
                 }
             }
 
-            results_file << "Falconn(Th:0.5) based matches:" << endl;
-            for(auto item: *nearest_neighbours3){
-                results_file << std::get<0>(item) << " " << std::get<1>(item) << " " << std::get<2>(item) << endl;
+            results_file << "Falconn(Th:0.5) based matches:" << std::endl;
+            for(auto item: *nearest_neighbours){
+                results_file << item << std::endl;
             }
         }
 
