@@ -363,7 +363,7 @@ namespace tf_idf_falconn_index {
                 }
             }
 
-            results_file << "Edit_distance based matches:" << std::endl;
+            results_file << "Edit_distance based matches(count:"+to_string(nearest_neighbours->size())+"):" << std::endl;
             for(auto item: *nearest_neighbours){
                 results_file << item << std::endl;
             }
@@ -388,7 +388,7 @@ namespace tf_idf_falconn_index {
                 }
             }
 
-            results_file << "Cosine_Similarity based matches:" << std::endl;
+            results_file << "Cosine_Similarity(Th:0.9) based matches(count:"+to_string(nearest_neighbours->size())+"):" << std::endl;
             for(auto item: *nearest_neighbours){
                 results_file << item << std::endl;
             }
@@ -402,7 +402,7 @@ namespace tf_idf_falconn_index {
                 nearest_neighbours->push_back(t);
             }
 
-            results_file << "Falconn(Th:0.5) based matches:" << std::endl;
+            results_file << "Falconn(Th:0.5) based matches(count:"+to_string(nearest_neighbours->size())+"):" << std::endl;
             for(auto item: *nearest_neighbours){
                 results_file << item << std::endl;
             }
