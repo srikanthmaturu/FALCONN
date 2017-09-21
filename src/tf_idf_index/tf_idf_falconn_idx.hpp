@@ -376,7 +376,6 @@ namespace tf_idf_falconn_index {
         }
 
 
-
         void get_nearest_neighbours_by_linear_method_using_multiple_methods(ofstream& results_file, std::string query, uint64_t edit_distance_threshold, double_t cosine_distance_threshold) {
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
             auto query_pure_tf_idf_vector = get_pure_tf_idf_vector(query);
@@ -388,16 +387,12 @@ namespace tf_idf_falconn_index {
                 auto edit_distance = uiLevenshteinDistance(query, original_data[i]);
                 auto cosine_distance = dataset[i].dot(query_tf_idf_vector);
                 auto euclidean_distance = (dataset[i] - query_tf_idf_vector).squaredNorm();
-                auto pure_cosine_distance = data_item_pure_tf_idf_vector.dot(query_pure_tf_idf_vector);
+                auto pure_cosine_distance = data_item_pure_tf_idf_vector.dot(query_pure_tf_idf_vector)/(data_item_pure_tf_idf_vector.norm() * query_pure_tf_idf_vector.norm());
                 auto pure_euclidean_distance = (data_item_pure_tf_idf_vector - query_pure_tf_idf_vector).squaredNorm();
-                if(edit_distance == 0){
-                    continue;
-                }
-                else if(edit_distance <= edit_distance_threshold){
+
+                if(edit_distance <= edit_distance_threshold){
                     std::string t = original_data[i] + " " + to_string(pure_cosine_distance) + "(" + to_string(cosine_distance) + ") " + to_string(edit_distance) + " " + to_string(pure_euclidean_distance) + "(" + to_string(euclidean_distance) + ")";
                     nearest_neighbours->push_back(t);
-                }else {
-                    continue;
                 }
             }
 
@@ -414,19 +409,15 @@ namespace tf_idf_falconn_index {
                 auto edit_distance = uiLevenshteinDistance(query, original_data[i]);
                 auto cosine_distance = dataset[i].dot(query_tf_idf_vector);
                 auto euclidean_distance = (dataset[i] - query_tf_idf_vector).squaredNorm();
-                auto pure_cosine_distance = data_item_pure_tf_idf_vector.dot(query_pure_tf_idf_vector);
+                auto pure_cosine_distance = data_item_pure_tf_idf_vector.dot(query_pure_tf_idf_vector)/(data_item_pure_tf_idf_vector.norm() * query_pure_tf_idf_vector.norm());
                 auto pure_euclidean_distance = (data_item_pure_tf_idf_vector - query_pure_tf_idf_vector).squaredNorm();
-                if(cosine_distance == 0){
-                    continue;
-                }
-                else if(cosine_distance >= cosine_distance_threshold){
+
+                if(pure_cosine_distance >= cosine_distance_threshold){
                     std::string t = original_data[i] + " " + to_string(pure_cosine_distance) + "(" + to_string(cosine_distance) + ") " + to_string(edit_distance) + " " + to_string(pure_euclidean_distance) + "(" + to_string(euclidean_distance) + ")";
                     #pragma omp ordered
                     {
                         nearest_neighbours->push_back(t);
                     }
-                }else {
-                    continue;
                 }
             }
 
@@ -444,7 +435,7 @@ namespace tf_idf_falconn_index {
                     auto edit_distance = uiLevenshteinDistance(query, falconn_match);
                     auto cosine_distance = query_tf_idf_vector.dot(getQuery_tf_idf_vector(falconn_match));
                     auto euclidean_distance = (getQuery_tf_idf_vector(falconn_match) - query_tf_idf_vector).squaredNorm();
-                    auto pure_cosine_distance = data_item_pure_tf_idf_vector.dot(query_pure_tf_idf_vector);
+                    auto pure_cosine_distance = data_item_pure_tf_idf_vector.dot(query_pure_tf_idf_vector)/(data_item_pure_tf_idf_vector.norm() * query_pure_tf_idf_vector.norm());
                     auto pure_euclidean_distance = (data_item_pure_tf_idf_vector - query_pure_tf_idf_vector).squaredNorm();
                     std::string t = falconn_match + " " + to_string(pure_cosine_distance) + "(" + to_string(cosine_distance) + ") " + to_string(edit_distance) + " " + to_string(pure_euclidean_distance) + "(" + to_string(euclidean_distance) + ")";
                     nearest_neighbours->push_back(t);
