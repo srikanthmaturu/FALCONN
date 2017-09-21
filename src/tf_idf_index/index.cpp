@@ -238,6 +238,7 @@ void process_queries_with_multiple_methods(index_type& tf_idf_falconn_i, vector<
         results_file << ">" << query << endl;
         tf_idf_falconn_i.get_nearest_neighbours_by_linear_method_using_multiple_methods(results_file, query, 30, 0.9);
     }
+
 }
 
 template<class index_type>
