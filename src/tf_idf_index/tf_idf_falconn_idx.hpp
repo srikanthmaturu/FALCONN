@@ -341,14 +341,18 @@ namespace tf_idf_falconn_index {
 
         void linear_test(std::string query, std::ofstream &results_file) {
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
+            auto query_pure_tf_idf_vector = get_pure_tf_idf_vector(query);
             std::vector<std::string> results(dataset.size());
             #pragma omp parallel for
             for (uint64_t i = 0; i < original_data.size(); i++) {
+                auto data_item_pure_tf_idf_vector = get_pure_tf_idf_vector(original_data[i]);
                 auto cosine_angle = acos(dataset[i].dot(query_tf_idf_vector))/ 3.14;
                 auto cosine_distance = dataset[i].dot(query_tf_idf_vector);
-                //auto cosine_distance = dataset[i].dot(query_tf_idf_vector);
                 auto euclidean_distance = (dataset[i] - query_tf_idf_vector).squaredNorm();
-                string result =  to_string(uiLevenshteinDistance(query, original_data[i])) + "," + to_string(cosine_distance) + "," + to_string(cosine_angle) + "," + to_string(euclidean_distance) + "\n";
+                auto pure_cosine_distance = data_item_pure_tf_idf_vector.dot(query_pure_tf_idf_vector)/(data_item_pure_tf_idf_vector.norm() * query_pure_tf_idf_vector.norm());
+                auto pure_euclidean_distance = (data_item_pure_tf_idf_vector - query_pure_tf_idf_vector).squaredNorm();
+
+                string result =  to_string(uiLevenshteinDistance(query, original_data[i])) + "," + to_string(pure_cosine_distance) + "," + to_string(cosine_distance) + "," + to_string(cosine_angle) + "," + to_string(euclidean_distance) + "," + to_string(pure_euclidean_distance) + "\n";
                 results[i] = result;
             }
 
