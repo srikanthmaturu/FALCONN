@@ -353,7 +353,7 @@ namespace tf_idf_falconn_index {
                 auto pure_cosine_angle = acos(pure_cosine_distance)/3.14;
                 auto pure_euclidean_distance = (data_item_pure_tf_idf_vector - query_pure_tf_idf_vector).squaredNorm();
 
-                string result =  to_string(uiLevenshteinDistance(query, original_data[i])) + "," + to_string(pure_cosine_distance) + "," + to_string(cosine_distance) + "," + to_string(pure_cosine_angle) + "," + to_string(cosine_angle) + "," + to_string(euclidean_distance) + "," + to_string(pure_euclidean_distance) + "\n";
+                string result =  to_string(uiLevenshteinDistance(query, original_data[i])) + "," + to_string(pure_cosine_distance) + "," + to_string(cosine_distance) + "," + to_string(pure_cosine_angle) + "," + to_string(cosine_angle) + "," + to_string(pure_euclidean_distance) + "," + to_string(euclidean_distance) + "\n";
                 results[i] = result;
             }
 
