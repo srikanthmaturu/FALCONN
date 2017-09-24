@@ -90,7 +90,7 @@ void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& quer
     }
     vector<vector<uint64_t>> queries_linear_results(queries.size(),vector<uint64_t>(3,0));
     uint64_t polytope_vertices = NGRAM_LENGTH * 2 + 1;
-    #pragma omp parallel
+
     for(uint64_t l = 32; l <= 64; l += 32){
         for(uint64_t nhb = polytope_vertices; nhb <= polytope_vertices * 3; nhb += polytope_vertices){
             uint64_t np_max = 0;
@@ -114,7 +114,7 @@ void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& quer
                     number_of_blocks++;
                 }
                 uint64_t realMatchesCount = 0, actualMatchesCount = 0;
-                #pragma omp for
+                #pragma omp parallel for
                 for(uint64_t bi = 0; bi < number_of_blocks; bi++){
                     uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
                     query_results_vector.resize(block_size);
