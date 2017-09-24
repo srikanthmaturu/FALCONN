@@ -79,6 +79,24 @@ void load_sequences(string sequences_file, vector<string>& sequences){
 }
 
 template<class index_type>
+double process_queries_parallely(index_type& tf_idf_falconn_i, vector<string>& queries, uint64_t number_of_blocks, uint64_t block_size){
+    uint64_t realMatchesCount = 0, actualMatchesCount = 0, queries_size = queries.size();
+#pragma omp parallel for
+    for(uint64_t bi = 0; bi < number_of_blocks; bi++){
+        uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
+        for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
+            auto linear_res = tf_idf_falconn_i.get_nearest_neighbours_by_linear_method(queries[i], 30);
+            auto res = tf_idf_falconn_i.match(queries[i]);
+            auto cs_fp_fn_pair = get_comparison(linear_res, res.second);
+            realMatchesCount += (linear_res.size());
+            actualMatchesCount += (get<0>(cs_fp_fn_pair) - get<1>(cs_fp_fn_pair));
+        }
+    }
+    double recall = (actualMatchesCount * 1.0) /(realMatchesCount * 1.0);
+    return recall;
+}
+
+template<class index_type>
 void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& queries){
     ofstream box_test_results_file("box_test_results_NGL_" + to_string(NGRAM_LENGTH) + ".csv");
     vector< vector< pair<string, uint64_t > > > query_results_vector;
@@ -113,23 +131,9 @@ void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& quer
                 if(extra_block > 0) {
                     number_of_blocks++;
                 }
-                uint64_t realMatchesCount = 0, actualMatchesCount = 0;
-                #pragma omp parallel for
-                for(uint64_t bi = 0; bi < number_of_blocks; bi++){
-                    uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
-                    query_results_vector.resize(block_size);
-                    //#pragma omp parallel for
-                    for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
-                        auto linear_res = tf_idf_falconn_i.get_nearest_neighbours_by_linear_method(queries[i], 30);
-                        auto res = tf_idf_falconn_i.match(queries[i]);
-                        auto cs_fp_fn_pair = get_comparison(linear_res, res.second);
-                        realMatchesCount += (linear_res.size());
-                        actualMatchesCount += (get<0>(cs_fp_fn_pair) - get<1>(cs_fp_fn_pair));
-                        }
-                    query_results_vector.clear();
-                }
+
+                double recall = process_queries_parallely(tf_idf_falconn_i, queries, number_of_blocks, block_size);
                 auto stop = timer::now();
-                double recall = (actualMatchesCount * 1.0) /(realMatchesCount * 1.0);
                 box_test_results_file << recall << "," << (duration_cast<chrono::microseconds>(stop-start).count()/1000000.0)/(double)queries.size() << "," << l << "," << nhb << "," << np << endl;
                 if(np_max <= (np + step) && (recall < 0.95)){
                     np_max = np + step * 2;
