@@ -81,7 +81,7 @@ void load_sequences(string sequences_file, vector<string>& sequences){
 template<class index_type>
 double process_queries_parallely(index_type& tf_idf_falconn_i, vector<string>& queries, uint64_t number_of_blocks, uint64_t block_size){
     uint64_t realMatchesCount = 0, actualMatchesCount = 0, queries_size = queries.size();
-#pragma omp parallel for
+//#pragma omp parallel for
     for(uint64_t bi = 0; bi < number_of_blocks; bi++){
         uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
         for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
@@ -136,6 +136,7 @@ void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& quer
                 auto stop = timer::now();
                 box_test_results_file << recall << "," << (duration_cast<chrono::microseconds>(stop-start).count()/1000000.0)/(double)queries.size() << "," << l << "," << nhb << "," << np << endl;
                 if(np_max <= (np + step) && (recall < 0.95)){
+                    step *= 2;
                     np_max = np + step * 2;
                 }
                 if(recall >= 0.95){
