@@ -122,7 +122,7 @@ void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& quer
                         auto res = tf_idf_falconn_i.match(queries[i]);
                         auto cs_fp_fn_pair = get_comparison(linear_res, res.second);
                         realMatchesCount += (linear_res.size());
-                        actualMatchesCount += (get<0>(cs_fp_fn_pair) - get<2>(cs_fp_fn_pair));
+                        actualMatchesCount += (get<0>(cs_fp_fn_pair) - get<1>(cs_fp_fn_pair));
                         }
                     query_results_vector.clear();
                 }
