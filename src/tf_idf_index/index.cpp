@@ -139,7 +139,7 @@ void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& quer
                     step *= 2;
                     np_max = np + step * 2;
                 }
-                if(recall >= 0.95){
+                if(recall >= 0.95 ||  np_max > 1000000){
                     break;
                 }
             }
