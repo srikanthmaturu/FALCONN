@@ -450,6 +450,7 @@ namespace tf_idf_falconn_index {
                 for(auto item: *nearest_neighbours){
                     results_file << item << std::endl;
                 }
+                nearest_neighbours->clear();
             }
         }
 
