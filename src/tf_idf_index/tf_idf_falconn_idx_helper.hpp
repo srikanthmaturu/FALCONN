@@ -15,6 +15,7 @@
 #include <vector>
 #include <utility>
 #include <tuple>
+#include <regex>
 #include "xxhash.h"
 
 #include <falconn/lsh_nn_table.h>
@@ -118,3 +119,23 @@ tuple<uint64_t, uint64_t, uint64_t> get_comparison(vector<string> linear_result,
     return make_tuple(falconn_result_hashes->size(),fp, fn);
 };
 
+void getKmers(std::string fastaFileName, std::vector<std::string>& sequences, uint64_t kmerSize){
+    ifstream fastaFile(fastaFileName, ifstream::in);
+
+    regex e("^>");
+    smatch m;
+
+    while(!fastaFile.eof()){
+        std::string line;
+        std::getline(fastaFile, line);
+
+        if(!regex_search(line, e) && line.size() > kmerSize){
+            for(uint64_t i = 0; i < line.size() - kmerSize + 1; i++){
+                sequences.push_back(line.substr(i, kmerSize));
+            }
+        }
+    }
+
+    fastaFile.close();
+    return;
+}

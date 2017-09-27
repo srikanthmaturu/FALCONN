@@ -31,7 +31,7 @@ const string index_name = "TF_IDF_FALCONN_IDX";
 
 string pt_name = "";
 
-#define getindextype(ngl, utd, uiidf, nhb, np, th, pt) tf_idf_falconn_idx<ngl,utd,uiidf,nhb,np,th,pt>
+#define getindextype(ngl, utd, uiidf, remap, nht, nhb, np, th, pt) tf_idf_falconn_idx<ngl,utd,uiidf,remap,nht,nhb,np,th,pt>
 #define STR(x)    #x
 #define STRING(x) STR(x)
 
@@ -54,10 +54,10 @@ struct my_timer{
     }
 };
 
-template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, uint64_t number_of_hash_bits, uint64_t number_of_probes, uint8_t threshold_t>
+template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, bool remap_t, uint64_t number_of_hash_tables_t, uint64_t number_of_hash_bits, uint64_t number_of_probes, uint8_t threshold_t>
 struct idx_file_trait{
     static std::string value(std::string hash_file){
-        return hash_file + ".NGL_" + to_string(ngram_length_t)+ "_UTD_" + ((use_tdfs_t)?"true":"false") + "_UIIDF_" + ((use_iidf_t)?"true":"false")+"_NHB_"+to_string(number_of_hash_bits)+"_NP_" +to_string(number_of_probes)+"_TH_" +to_string(threshold_t)
+        return hash_file + ".NGL_" + to_string(ngram_length_t)+ "_UTD_" + ((use_tdfs_t)?"true":"false") + "_UIIDF_" + ((use_iidf_t)?"true":"false")+"_remap_" + ((remap_t)?"true":"false")+"_NHT_"+to_string(number_of_hash_tables_t)+"_NHB_"+to_string(number_of_hash_bits)+"_NP_" +to_string(number_of_probes)+"_TH_" +to_string(threshold_t)
                + "_PT_" + pt_name;
     }
 };
@@ -287,6 +287,8 @@ int main(int argc, char* argv[]){
     constexpr uint64_t ngram_length = NGRAM_LENGTH;
     constexpr bool use_tdfs = USE_TDFS;
     constexpr bool use_iidf = USE_IIDF;
+    constexpr bool remap = REMAP;
+    constexpr uint64_t number_of_hash_tables = NUMBER_OF_HASH_TABLES;
     constexpr uint64_t number_of_hash_bits = NUMBER_OF_HASH_BITS;
     constexpr uint64_t number_of_probes = NUMBER_OF_PROBES;
     constexpr uint64_t threshold = THRESHOLD;
@@ -295,11 +297,11 @@ int main(int argc, char* argv[]){
     typedef INDEX_TYPE tf_idf_falconn_index_type;
 #else
     typedef POINT_TYPE point_type;
-    typedef getindextype(ngram_length, use_tdfs, use_iidf, number_of_hash_bits, number_of_probes, threshold, point_type) tf_idf_falconn_index_type;
+    typedef getindextype(ngram_length, use_tdfs, use_iidf, remap, number_of_hash_tables, number_of_hash_bits, number_of_probes, threshold, point_type) tf_idf_falconn_index_type;
 #endif
 
-    if ( argc < 4 ) {
-        cout << "Usage: ./" << argv[0] << " sequences_file query_file filter_enabled [type_of_test]" << endl;
+    if ( argc < 5 ) {
+        cout << "Usage: ./" << argv[0] << " sequences_file query_file type_of_query_file(fasta|kmers) filter_enabled [type_of_test]" << endl;
         return 1;
     }
 
@@ -311,12 +313,18 @@ int main(int argc, char* argv[]){
         cout << "Usage of tdfs is disabled." << endl;
     }
 
+    if(remap){
+        cout << "Remap enabled." << endl;
+    }
+
     string sequences_file = argv[1];
     string queries_file = argv[2];
-    string filter_enabled = argv[3];
+    string type_of_query_file = argv[3];
+    string filter_enabled = argv[4];
+    uint64_t database_kmer_size = 0;
     cout << "SF: " << sequences_file << " QF:" << queries_file << endl;
-    string idx_file = idx_file_trait<ngram_length, use_tdfs, use_iidf, number_of_hash_bits, number_of_probes, threshold>::value(sequences_file);
-    string queries_results_file = idx_file_trait<ngram_length, use_tdfs, use_iidf, number_of_hash_bits, number_of_probes, threshold>::value(queries_file) + "_search_results.txt";
+    string idx_file = idx_file_trait<ngram_length, use_tdfs, use_iidf, remap, number_of_hash_tables, number_of_hash_bits, number_of_probes, threshold>::value(sequences_file);
+    string queries_results_file = idx_file_trait<ngram_length, use_tdfs, use_iidf, remap, number_of_hash_tables, number_of_hash_bits, number_of_probes, threshold>::value(queries_file) + "_search_results.txt";
     tf_idf_falconn_index_type tf_idf_falconn_i;
 
     {
@@ -326,6 +334,7 @@ int main(int argc, char* argv[]){
             auto index_construction_begin_time = timer::now();
             vector<string> sequences;
             load_sequences(sequences_file, sequences);
+            database_kmer_size = sequences[0].size();
             {
                 cout<< "Index construction begins"<< endl;
                 auto temp = tf_idf_falconn_index_type(sequences);
@@ -343,17 +352,23 @@ int main(int argc, char* argv[]){
 #else
         vector<string> sequences;
         load_sequences(sequences_file, sequences);
+        database_kmer_size = sequences[0].size();
         tf_idf_falconn_i = tf_idf_falconn_index_type(sequences);
 #endif
         //tf_idf_falconn_i.printLSHConstructionParameters();
         tf_idf_falconn_i.construct_table();
         vector<string> queries;
-        load_sequences(queries_file, queries);
+        if(type_of_query_file == "fasta"){
+            cout << "Input Query File Type: fasta" << endl;
+            getKmers(queries_file, queries, database_kmer_size);
+        }else{
+            load_sequences(queries_file, queries);
+        }
         ofstream results_file(queries_results_file);
         if(filter_enabled == "1"){
             cout << "Filter enabled. Filtering based on edit-distance. Only kmers with least edit-distance to query is outputted." << endl;
-            if(argc == 5){
-                switch(stoi(argv[4])){
+            if(argc == 6){
+                switch(stoi(argv[5])){
                     case 0:
                         process_queries_box_test(tf_idf_falconn_i, queries);
                         break;
