@@ -177,8 +177,10 @@ namespace tf_idf_falconn_index {
                 }
                 tf_idf_vector[d_num]++;
             }
-            for(size_t i = 0; i < tf_vec_maximums.size(); i += 2){
-                tf_idf_vector[i] = tf_vec_maximums[i] - tf_idf_vector[i];
+            if(remap){
+                for(size_t i = 0; i < tf_vec_maximums.size(); i += 2){
+                    tf_idf_vector[i] = tf_vec_maximums[i] - tf_idf_vector[i];
+                }
             }
             double vec_sq_sum = 0.0;
             for (uint64_t i = 0; i < tf_vec_size; i++) {
@@ -595,7 +597,6 @@ namespace tf_idf_falconn_index {
                 }
                 nnPair.second += 1;
             }
-
             return nnPair;
         }
     };
