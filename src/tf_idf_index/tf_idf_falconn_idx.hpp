@@ -502,7 +502,7 @@ namespace tf_idf_falconn_index {
                 }
                 else if(edit_distance <= edit_distance_threshold){
                     nearest_neighbours->push_back(original_data[i]);
-                    std::cout << original_data[i] << std::endl;
+                    //std::cout << original_data[i] << std::endl;
                 }else {
                     continue;
                 }
