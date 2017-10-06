@@ -166,10 +166,11 @@ void process_queries_thresholds_test(index_type& tf_idf_falconn_i, vector<string
     if(queries_size < block_size){
         block_size = queries_size;
     }
-    tf_idf_falconn_i.updateParmeters(32, 14, 7000);
+
     cout << "Current LSH Parameters: " << endl;
     tf_idf_falconn_i.printLSHConstructionParameters();
     tf_idf_falconn_i.construct_table();
+
     vector<vector<uint64_t>> queries_linear_results(queries.size(),vector<uint64_t>(3,0));
     uint64_t extra_block = queries_size % block_size;
     uint64_t number_of_blocks =  queries_size / block_size;
@@ -185,6 +186,7 @@ void process_queries_thresholds_test(index_type& tf_idf_falconn_i, vector<string
         }
     }
     thresholds_test_results_file << endl;
+
     for(uint64_t bi = 0; bi < number_of_blocks; bi++){
         uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
         query_results_vector.resize(block_size);
@@ -357,6 +359,7 @@ int main(int argc, char* argv[]){
 #else
         vector<string> sequences;
         load_sequences(sequences_file, sequences);
+        cout << "Kmer size: " << sequences.size() << endl;
         database_kmer_size = sequences[0].size();
         tf_idf_falconn_i = tf_idf_falconn_index_type(sequences);
 #endif

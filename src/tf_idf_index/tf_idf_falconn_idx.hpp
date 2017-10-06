@@ -502,6 +502,7 @@ namespace tf_idf_falconn_index {
                 }
                 else if(edit_distance <= edit_distance_threshold){
                     nearest_neighbours->push_back(original_data[i]);
+                    std::cout << original_data[i] << std::endl;
                 }else {
                     continue;
                 }
@@ -654,7 +655,10 @@ namespace tf_idf_falconn_index {
             for(uint8_t i = 1; i <= 4; i++){
                 categoryCounts[getEditDistanceCategory(i)] = 0;
             }
-            for(uint8_t i = 0; i <= candidates.size() ; i++){
+            for(uint8_t i = 0; i < candidates.size() ; i++){
+                //std::cout << query << std::endl;
+                //std::cout << candidates[i] << std::endl;
+                //std::cout << "heheh\n" ;
                 auto edit_distance = uiLevenshteinDistance(query, candidates[i]);
                 categoryCounts[getEditDistanceCategory(getCategoryIndex(edit_distance))]++;
             }
