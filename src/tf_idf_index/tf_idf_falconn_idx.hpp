@@ -551,7 +551,7 @@ namespace tf_idf_falconn_index {
             };
 
 
-            for(uint8_t i = 1; i < 4; i++){
+            for(uint8_t i = 1; i <= 4; i++){
                 nearest_neighbours[i] = std::vector<std::pair<uint16_t, std::string>>();
             }
             uint64_t editDistanceMatches = 0;
@@ -581,7 +581,7 @@ namespace tf_idf_falconn_index {
                 }
             }
 
-            for(uint8_t i = 1; i < 4; i++){
+            for(uint8_t i = 1; i <= 4; i++){
                 nearest_neighbours[i].clear();
             }
 
@@ -615,7 +615,7 @@ namespace tf_idf_falconn_index {
                 }
             }
 
-            for(uint8_t i = 1; i < 4; i++){
+            for(uint8_t i = 1; i <= 4; i++){
                 nearest_neighbours[i].clear();
             }
 
