@@ -194,11 +194,11 @@ void process_queries_thresholds_test(index_type& tf_idf_falconn_i, vector<string
         for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
             auto linear_res = tf_idf_falconn_i.get_nearest_neighbours_by_linear_method(queries[i], 30);
             auto edCategoryCounts = tf_idf_falconn_i.getCategoryCounts(queries[i], linear_res);
+            thresholds_test_results_file << i << "," << linear_res.size() << ",";
             for(auto it : edCategoryCounts){
                 thresholds_test_results_file << "," << it.second;
             }
             thresholds_test_results_file << ",";
-            thresholds_test_results_file << i << "," << linear_res.size() << ",";
             for(double th = 10; th <= 150; th += 10) {
                 tf_idf_falconn_i.setThreshold(th/100.0);
                 auto res = tf_idf_falconn_i.match(queries[i]);
