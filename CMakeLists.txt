@@ -49,13 +49,15 @@ FOREACH(line ${exp0.lines})
     LIST(GET t_params 0 NGRAM_LENGTH)
     LIST(GET t_params 1 USE_TDFS)
     LIST(GET t_params 2 USE_IIDF)
-    LIST(GET t_params 3 NUMBER_OF_HASH_BITS)
-    LIST(GET t_params 4 NUMBER_OF_PROBES)
-    LIST(GET t_params 5 THRESHOLD)
+    LIST(GET t_params 3 REMAP)
+    LIST(GET t_params 4 NUMBER_OF_HASH_TABLES)
+    LIST(GET t_params 5 NUMBER_OF_HASH_BITS)
+    LIST(GET t_params 6 NUMBER_OF_PROBES)
+    LIST(GET t_params 7 THRESHOLD)
     LIST(LENGTH t_params p_size)
-    LIST(GET t_params 6 POINT_TYPE)
+    LIST(GET t_params 8 POINT_TYPE)
     STRING(REGEX REPLACE "(.*)<(.*)>" "\\1" point_type ${POINT_TYPE})
-    SET(exec ${index_name}_NGL_${NGRAM_LENGTH}_UTD_${USE_TDFS}_UIIDF_${USE_IIDF}_NHB_${NUMBER_OF_HASH_BITS}_NP_${NUMBER_OF_PROBES}_TH_${THRESHOLD}_PT_${point_type})
+    SET(exec ${index_name}_NGL_${NGRAM_LENGTH}_UTD_${USE_TDFS}_UIIDF_${USE_IIDF}_RMP_${REMAP}_NHT_${NUMBER_OF_HASH_TABLES}_NHB_${NUMBER_OF_HASH_BITS}_NP_${NUMBER_OF_PROBES}_TH_${THRESHOLD}_PT_${point_type})
     ADD_EXECUTABLE(${exec} src/tf_idf_index/index.cpp)
     TARGET_LINK_LIBRARIES(${exec} ${Boost_LIBRARIES} xxhash)
     SET_PROPERTY(TARGET ${exec} PROPERTY COMPILE_DEFINITIONS
@@ -64,19 +66,23 @@ FOREACH(line ${exp0.lines})
             NGRAM_LENGTH=${NGRAM_LENGTH}
             USE_TDFS=${USE_TDFS}
             USE_IIDF=${USE_IIDF}
+            REMAP=${REMAP}
+            NUMBER_OF_HASH_TABLES=${NUMBER_OF_HASH_TABLES}
             NUMBER_OF_HASH_BITS=${NUMBER_OF_HASH_BITS}
             NUMBER_OF_PROBES=${NUMBER_OF_PROBES}
             THRESHOLD=${THRESHOLD}
             POINT_TYPE=${POINT_TYPE}
             CUSTOM_BOOST_ENABLED=true
             )
-    SET(nb_exec ${exec}_SV_NONBOOSTVERSION)
+    SET(nb_exec ${exec}_SV_NBV)
     ADD_EXECUTABLE(${nb_exec} src/tf_idf_index/index.cpp)
     TARGET_LINK_LIBRARIES(${nb_exec} xxhash)
     SET_PROPERTY(TARGET ${nb_exec} PROPERTY COMPILE_DEFINITIONS
             NGRAM_LENGTH=${NGRAM_LENGTH}
             USE_TDFS=${USE_TDFS}
             USE_IIDF=${USE_IIDF}
+            REMAP=${REMAP}
+            NUMBER_OF_HASH_TABLES=${NUMBER_OF_HASH_TABLES}
             NUMBER_OF_HASH_BITS=${NUMBER_OF_HASH_BITS}
             NUMBER_OF_PROBES=${NUMBER_OF_PROBES}
             THRESHOLD=${THRESHOLD}

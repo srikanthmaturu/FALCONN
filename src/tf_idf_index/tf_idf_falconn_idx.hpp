@@ -29,7 +29,7 @@
 #include <falconn/lsh_nn_table.h>
 
 namespace tf_idf_falconn_index {
-    template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, uint64_t number_of_hash_bits_t, uint64_t number_of_probes_t, uint8_t threshold_t, class point_type_t=SparseVectorFloat>
+    template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, bool remap_t, uint64_t number_of_hash_tables_t, uint64_t number_of_hash_bits_t, uint64_t number_of_probes_t, uint8_t threshold_t, class point_type_t=SparseVectorFloat>
     class tf_idf_falconn_idx {
     public:
         tf_idf_falconn_idx() = default;
@@ -47,7 +47,7 @@ namespace tf_idf_falconn_index {
             construct_dataset(data);
             params.dimension = dataset[0].size();
             params.lsh_family = falconn::LSHFamily::CrossPolytope;
-            params.l = 32;
+            params.l = number_of_hash_tables;
             params.distance_function = falconn::DistanceFunction::EuclideanSquared;
 
             if (std::is_same<point_type, DenseVectorFloat>::value) {
@@ -95,13 +95,16 @@ namespace tf_idf_falconn_index {
         falconn::LSHConstructionParameters params;
         uint64_t number_of_hash_bits = number_of_hash_bits_t;
         uint64_t num_probes = number_of_probes_t;
+        uint64_t number_of_hash_tables = number_of_hash_tables_t;
         bool use_tdfs = use_tdfs_t;
         bool use_iidf = use_iidf_t;
+        bool remap = remap_t;
         double_t threshold;
 
         std::vector<std::string> original_data;
         uint64_t ngram_length = ngram_length_t;
         std::vector<uint64_t> tdfs;
+        std::vector<double_t> tf_vec_maximums;
         std::map<char, int> a_map = {{'A', 0},
                                      {'C', 1},
                                      {'G', 2},
@@ -125,6 +128,7 @@ namespace tf_idf_falconn_index {
             boost::archive::binary_oarchive oa(idx_file_ofs);
             oa << original_data;
             oa << tdfs;
+            oa << tf_vec_maximums;
             oa << dataset;
             oa << center;
             oa << params;
@@ -139,6 +143,7 @@ namespace tf_idf_falconn_index {
             boost::archive::binary_iarchive ia(idx_file_ifs);
             ia >> original_data;
             ia >> tdfs;
+            ia >> tf_vec_maximums;
             ia >> dataset;
             ia >> center;
             ia >> params;
@@ -159,6 +164,11 @@ namespace tf_idf_falconn_index {
             return std::make_pair(matches.size(), matches);
         }
 
+        void getQueryBucketIds(std::string query){
+            auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
+            return query_object->getQueryBucketIds(query_tf_idf_vector);
+        }
+
         point_type getQuery_tf_idf_vector(std::string query) {
             uint64_t tf_vec_size = pow(4, ngram_length);
             uint64_t string_size = query.size();
@@ -171,6 +181,11 @@ namespace tf_idf_falconn_index {
                     d_num += a_map[ngram[j]] * pow(4, (ngram_length - j - 1));
                 }
                 tf_idf_vector[d_num]++;
+            }
+            if(remap){
+                for(size_t i = 0; i < tf_vec_maximums.size(); i += 2){
+                    tf_idf_vector[i] = tf_vec_maximums[i] - tf_idf_vector[i];
+                }
             }
             double vec_sq_sum = 0.0;
             for (uint64_t i = 0; i < tf_vec_size; i++) {
@@ -199,11 +214,13 @@ namespace tf_idf_falconn_index {
                 subtract_center(point);
                 //point.normalize();
             }
-
             return point;
         }
 
         point_type get_pure_tf_idf_vector(std::string query) {
+            if(remap){
+                return get_pure_tf_idf_vector_by_remap(query);
+            }
             uint64_t tf_vec_size = pow(4, ngram_length);
             uint64_t string_size = query.size();
             uint64_t data_size = dataset.size();
@@ -233,7 +250,34 @@ namespace tf_idf_falconn_index {
             return point;
         }
 
+        point_type get_pure_tf_idf_vector_by_remap(std::string query) {
+            uint64_t tf_vec_size = pow(4, ngram_length);
+            uint64_t string_size = query.size();
+            vector<float> tf_idf_vector(tf_vec_size, 0.0);
+            for (uint64_t i = 0; i < string_size - ngram_length + 1; i++) {
+                std::string ngram = query.substr(i, ngram_length);
+                uint64_t d_num = 0;
+                for (uint64_t j = 0; j < ngram_length; j++) {
+                    d_num += a_map[ngram[j]] * pow(4, (ngram_length - j - 1));
+                }
+                tf_idf_vector[d_num]++;
+            }
+            for (uint64_t i = 0; i < tf_vec_size; i += 2) {
+                tf_idf_vector[i] = tf_vec_maximums[i] - tf_idf_vector[i];
+            }
+            for (uint64_t i = 0; i < tf_vec_size; i++) {
+                if (tf_idf_vector[i] > 0) {
+                    tf_idf_vector[i] = (1 + log10(tf_idf_vector[i]));
+                }
+            }
+            point_type point = get_point<point_type>(tf_idf_vector);
+            return point;
+        }
+
         void construct_dataset(std::vector<std::string> &data) {
+            if(remap){
+                return construct_dataset_by_remap(data);
+            }
             uint64_t tf_vec_size = pow(4, ngram_length);
             uint64_t data_size = data.size();
             uint64_t string_size = data[0].size();
@@ -270,6 +314,55 @@ namespace tf_idf_falconn_index {
                             tf_idf_vectors[i][j] *= (log10(1 + ((double) tdfs[j] / (double) data_size)));
                         }
                     }
+                    vec_sq_sum += pow(tf_idf_vectors[i][j], 2);
+                }
+                vec_sq_sum = pow(vec_sq_sum, 0.5);
+                for (uint64_t j = 0; j < tf_vec_size; j++) {
+                    tf_idf_vectors[i][j] /= vec_sq_sum;
+                    //std::cout << tf_idf_vectors[i][j] << " \t";
+                }
+                //std::cout << std::endl;
+                dataset.push_back(get_point<point_type>(tf_idf_vectors[i]));
+            }
+
+            if (std::is_same<point_type, DenseVectorFloat>::value) {
+                re_center_dataset<point_type>();
+            }
+        }
+
+        void construct_dataset_by_remap(std::vector<std::string> &data) {
+            uint64_t tf_vec_size = pow(4, ngram_length);
+            uint64_t data_size = data.size();
+            uint64_t string_size = data[0].size();
+            tf_vec_maximums.resize(tf_vec_size, 0.0);
+            vector<VectorFloat> tf_idf_vectors(data_size, VectorFloat(tf_vec_size, 0));
+            vector<double> vec_sq_sums(data_size);
+            for (uint64_t i = 0; i < data_size; i++) {
+                for (uint64_t j = 0; j < string_size - ngram_length + 1; j++) {
+                    std::string ngram = data[i].substr(j, ngram_length);
+                    uint64_t d_num = 0;
+                    for (uint64_t k = 0; k < ngram_length; k++) {
+                        d_num += a_map[ngram[k]] * pow(4, (ngram_length - k - 1));
+                    }
+                    tf_idf_vectors[i][d_num]++;
+                }
+                for (uint64_t j = 0; j < tf_vec_size; j++) {
+                    if (tf_idf_vectors[i][j] > tf_vec_maximums[j]) {
+                        tf_vec_maximums[j] = tf_idf_vectors[i][j];
+                    }
+                }
+            }
+            for (uint64_t i = 0; i < data_size; i++) {
+                for (uint64_t j = 0; j < tf_vec_size; j += 2) {
+                    tf_idf_vectors[i][j] = tf_vec_maximums[j] - tf_idf_vectors[i][j];
+                }
+                for (uint64_t j = 0; j < tf_vec_size; j++) {
+                    if (tf_idf_vectors[i][j] > 0) {
+                        tf_idf_vectors[i][j] = (1 + log10(tf_idf_vectors[i][j]));
+                    }
+                }
+                double_t vec_sq_sum = 0.0;
+                for (uint64_t j = 0; j < tf_vec_size; j++) {
                     vec_sq_sum += pow(tf_idf_vectors[i][j], 2);
                 }
                 vec_sq_sum = pow(vec_sq_sum, 0.5);
@@ -339,6 +432,42 @@ namespace tf_idf_falconn_index {
         typename std::enable_if<std::is_same<T, SparseVectorFloat>::value, void>::type subtract_center(T &point) {
         }
 
+        template<class T>
+        typename std::enable_if<std::is_same<T, DenseVectorFloat>::value, void>::type remap_dataset() {
+            uint64_t tf_vec_size = pow(4, ngram_length);
+            tf_vec_maximums.resize(tf_vec_size, 0.0);
+            for (size_t i = 0; i < dataset.size(); ++i) {
+                for(size_t j = 0; j < tf_vec_size; ++j){
+                    if(dataset[i][j] > tf_vec_maximums[j]){
+                        tf_vec_maximums[j] = dataset[i][j];
+                    }
+                }
+            }
+            for (size_t i = 0; i <dataset.size(); ++i){
+                for(size_t j = 0; j < tf_vec_size; j += 2){
+                    dataset[i][j] = tf_vec_maximums[j] - dataset[i][j];
+                }
+            }
+        }
+
+
+        template<class T>
+        typename std::enable_if<std::is_same<T, SparseVectorFloat>::value, void>::type remap_dataset(){
+
+        };
+
+        template<class T>
+        typename std::enable_if<std::is_same<T, DenseVectorFloat>::value, void>::type remap_query_tf_idf_vector(T& point) {
+            for(size_t i = 0; i < tf_vec_maximums.size(); i += 2){
+                point[i] = tf_vec_maximums[i] - point[i];
+            }
+        }
+
+        template<class T>
+        typename std::enable_if<std::is_same<T, SparseVectorFloat>::value, void>::type remap_query_tf_idf_vector(T& map){
+
+        };
+
         void linear_test(std::string query, std::ofstream &results_file) {
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
             auto query_pure_tf_idf_vector = get_pure_tf_idf_vector(query);
@@ -380,12 +509,52 @@ namespace tf_idf_falconn_index {
             return *nearest_neighbours;
         }
 
+        uint8_t getCategoryIndex(uint16_t editDistance){
+            if(editDistance <= 15){
+                return 1;
+            }
+            else if(editDistance <= 20){
+                return 2;
+            }
+            else if(editDistance <= 25) {
+                return 3;
+            }
+            else {
+                return 4;
+            }
+        }
+
+        std::string getEditDistanceCategory(uint8_t category){
+            if(category == 1){
+                return "ED <= 15";
+            }
+            else if(category == 2){
+                return "15 < ED <= 20";
+            }
+            else if(category == 3){
+                return "20 < ED <= 25";
+            }
+            else {
+                return "ED > 25";
+            }
+        }
 
         void get_nearest_neighbours_by_linear_method_using_multiple_methods(ofstream& results_file, std::string query, uint64_t edit_distance_threshold, double_t cosine_distance_threshold) {
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
             auto query_pure_tf_idf_vector = get_pure_tf_idf_vector(query);
-            std::vector<std::string> * nearest_neighbours = new std::vector<std::string>();
+            std::map<uint64_t, std::vector<std::pair<uint16_t, std::string>>> nearest_neighbours;
 
+            struct ComparePairs {
+                bool operator()(std::pair<uint16_t, std::string> i, std::pair<uint16_t, std::string> j) {
+                    return (i.first < j.first);
+                }
+            };
+
+
+            for(uint8_t i = 1; i < 4; i++){
+                nearest_neighbours[i] = std::vector<std::pair<uint16_t, std::string>>();
+            }
+            uint64_t editDistanceMatches = 0;
             #pragma omp parallel for
             for (uint64_t i = 0; i < original_data.size(); i++) {
                 auto data_item_pure_tf_idf_vector = get_pure_tf_idf_vector(original_data[i]);
@@ -397,17 +566,26 @@ namespace tf_idf_falconn_index {
 
                 if(edit_distance <= edit_distance_threshold){
                     std::string t = original_data[i] + " " + to_string(pure_cosine_distance) + "(" + to_string(cosine_distance) + ") " + to_string(edit_distance) + " " + to_string(pure_euclidean_distance) + "(" + to_string(euclidean_distance) + ")";
-                    nearest_neighbours->push_back(t);
+                    uint8_t category = getCategoryIndex(edit_distance);
+                    editDistanceMatches++;
+                    nearest_neighbours[category].push_back(std::make_pair(edit_distance,t));
                 }
             }
 
-            results_file << "Edit_distance based matches(count:"+to_string(nearest_neighbours->size())+"):" << std::endl;
-            for(auto item: *nearest_neighbours){
-                results_file << item << std::endl;
+            results_file << "Edit_distance based matches(count:"+to_string(editDistanceMatches)+"):" << std::endl;
+            for(auto category:nearest_neighbours){
+                results_file << "Matches with " << getEditDistanceCategory(category.first) << " (count:"+to_string(category.second.size())+"):"<< endl;
+                std::sort(category.second.begin(), category.second.end(), ComparePairs());
+                for(auto p: category.second){
+                    results_file << p.second << endl;
+                }
             }
 
-            nearest_neighbours->clear();
+            for(uint8_t i = 1; i < 4; i++){
+                nearest_neighbours[i].clear();
+            }
 
+            uint64_t cosineDistanceMatches = 0;
             #pragma omp parallel for ordered
             for (uint64_t i = 0; i < original_data.size(); i++) {
                 auto data_item_pure_tf_idf_vector = get_pure_tf_idf_vector(original_data[i]);
@@ -421,20 +599,29 @@ namespace tf_idf_falconn_index {
                     std::string t = original_data[i] + " " + to_string(pure_cosine_distance) + "(" + to_string(cosine_distance) + ") " + to_string(edit_distance) + " " + to_string(pure_euclidean_distance) + "(" + to_string(euclidean_distance) + ")";
                     #pragma omp ordered
                     {
-                        nearest_neighbours->push_back(t);
+                        cosineDistanceMatches++;
+                        uint8_t category = getCategoryIndex(edit_distance);
+                        nearest_neighbours[category].push_back(std::make_pair(edit_distance,t));
                     }
                 }
             }
 
-            results_file << "Cosine_Similarity(Th:0.9) based matches(count:"+to_string(nearest_neighbours->size())+"):" << std::endl;
-            for(auto item: *nearest_neighbours){
-                results_file << item << std::endl;
+            results_file << "Cosine_Similarity(Th:0.9) based matches(count:"+to_string(cosineDistanceMatches)+"):" << std::endl;
+            for(auto category:nearest_neighbours){
+                results_file << "Matches with " << getEditDistanceCategory(category.first) << " (count:"+to_string(category.second.size())+"):"<< endl;
+                std::sort(category.second.begin(), category.second.end(), ComparePairs());
+                for(auto p: category.second){
+                    results_file << p.second << endl;
+                }
             }
 
-            nearest_neighbours->clear();
+            for(uint8_t i = 1; i < 4; i++){
+                nearest_neighbours[i].clear();
+            }
 
             for(uint8_t threshold = 10; threshold <= 150; threshold += 10){
                 setThreshold(threshold/100.0);
+                uint64_t falconn_matches = 0;
                 for(auto falconn_match: match(query).second){
                     auto data_item_pure_tf_idf_vector = get_pure_tf_idf_vector(falconn_match);
                     auto edit_distance = uiLevenshteinDistance(query, falconn_match);
@@ -443,14 +630,22 @@ namespace tf_idf_falconn_index {
                     auto pure_cosine_distance = data_item_pure_tf_idf_vector.dot(query_pure_tf_idf_vector)/(data_item_pure_tf_idf_vector.norm() * query_pure_tf_idf_vector.norm());
                     auto pure_euclidean_distance = (data_item_pure_tf_idf_vector - query_pure_tf_idf_vector).squaredNorm();
                     std::string t = falconn_match + " " + to_string(pure_cosine_distance) + "(" + to_string(cosine_distance) + ") " + to_string(edit_distance) + " " + to_string(pure_euclidean_distance) + "(" + to_string(euclidean_distance) + ")";
-                    nearest_neighbours->push_back(t);
+                    falconn_matches++;
+                    uint8_t category = getCategoryIndex(edit_distance);
+                    nearest_neighbours[category].push_back(std::make_pair(edit_distance,t));
                 }
 
-                results_file << "Falconn(Th:"<< threshold/100.0 <<") based matches(count:"+to_string(nearest_neighbours->size())+"):" << std::endl;
-                for(auto item: *nearest_neighbours){
-                    results_file << item << std::endl;
+                results_file << "Falconn(Th:"<< threshold/100.0 <<") based matches(count:"+to_string(falconn_matches)+"):" << std::endl;
+                for(auto category:nearest_neighbours){
+                    results_file << "Matches with " << getEditDistanceCategory(category.first) << " (count:"+to_string(category.second.size())+"):"<< endl;
+                    std::sort(category.second.begin(), category.second.end(), ComparePairs());
+                    for(auto p: category.second){
+                        results_file << p.second << endl;
+                    }
                 }
-                nearest_neighbours->clear();
+                for(uint8_t i = 1; i < 4; i++){
+                    nearest_neighbours[i].clear();
+                }
             }
         }
 
@@ -473,7 +668,6 @@ namespace tf_idf_falconn_index {
                 }
                 nnPair.second += 1;
             }
-
             return nnPair;
         }
     };
