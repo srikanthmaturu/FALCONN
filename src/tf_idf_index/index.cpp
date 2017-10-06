@@ -179,7 +179,7 @@ void process_queries_thresholds_test(index_type& tf_idf_falconn_i, vector<string
     }
     thresholds_test_results_file << "Query Index, tp,";
     for(double th = 10; th <= 150; th += 10) {
-        thresholds_test_results_file << "Threshold-" << th / 100.0 << " (candidates_fp_fn),," ;
+        thresholds_test_results_file << "Threshold-" << th / 100.0 << " candidates, (ED <= 15), (15 < ED <= 20), (20 < ED <= 25), (ED > 25) , fp, fn" ;
         if(th < 150){
             thresholds_test_results_file << ",";
         }
@@ -195,8 +195,13 @@ void process_queries_thresholds_test(index_type& tf_idf_falconn_i, vector<string
             for(double th = 10; th <= 150; th += 10) {
                 tf_idf_falconn_i.setThreshold(th/100.0);
                 auto res = tf_idf_falconn_i.match(queries[i]);
+                auto categoryCounts = tf_idf_falconn_i.getCategoryCounts(queries[i], res.second);
                 auto cs_fp_fn_pair = get_comparison(linear_res, res.second);
-                thresholds_test_results_file << std::get<0>(cs_fp_fn_pair) << "," << std::get<1>(cs_fp_fn_pair) << "," << std::get<2>(cs_fp_fn_pair);
+                thresholds_test_results_file << std::get<0>(cs_fp_fn_pair);
+                for(auto it : categoryCounts){
+                    thresholds_test_results_file << "," << it.second;
+                }
+                thresholds_test_results_file << "," << std::get<1>(cs_fp_fn_pair) << "," << std::get<2>(cs_fp_fn_pair);
                 if(th < 150){
                     thresholds_test_results_file << ",";
                 }

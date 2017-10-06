@@ -649,6 +649,18 @@ namespace tf_idf_falconn_index {
             }
         }
 
+        std::map<std::string,uint64_t> getCategoryCounts(std::string query, std::vector<std::string> candidates){
+            std::map<std::string,uint64_t> categoryCounts;
+            for(uint8_t i = 1; i <= 4; i++){
+                categoryCounts[getEditDistanceCategory(i)] = 0;
+            }
+            for(uint8_t i = 0; i <= candidates.size() ; i++){
+                auto edit_distance = uiLevenshteinDistance(query, candidates[i]);
+                categoryCounts[getEditDistanceCategory(getCategoryIndex(edit_distance))]++;
+            }
+            return std::move(categoryCounts);
+        }
+
         std::pair<uint64_t, uint64_t> count_nearest_neighbours(std::string query) {
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
             std::pair<uint64_t, uint64_t> nnPair;
