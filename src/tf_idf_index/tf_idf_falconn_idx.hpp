@@ -29,7 +29,7 @@
 #include <falconn/lsh_nn_table.h>
 
 namespace tf_idf_falconn_index {
-    template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, bool remap_t, uint64_t number_of_hash_tables_t, uint64_t number_of_hash_bits_t, uint64_t number_of_probes_t, uint8_t threshold_t, class point_type_t=SparseVectorFloat>
+    template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, bool remap_t, uint64_t lsh_type, uint64_t number_of_hash_tables_t, uint64_t number_of_hash_bits_t, uint64_t number_of_probes_t, uint8_t threshold_t, class point_type_t=SparseVectorFloat>
     class tf_idf_falconn_idx {
     public:
         tf_idf_falconn_idx() = default;
@@ -46,7 +46,15 @@ namespace tf_idf_falconn_index {
             original_data = data;
             construct_dataset(data);
             params.dimension = dataset[0].size();
-            params.lsh_family = falconn::LSHFamily::CrossPolytope;
+            switch(lsh_type){
+                case 1:
+                    params.lsh_family = falconn::LSHFamily::Hyperplane;
+                    break;
+                case 2:
+                    params.lsh_family = falconn::LSHFamily::CrossPolytope;
+                    break;
+            }
+
             params.l = number_of_hash_tables;
             params.distance_function = falconn::DistanceFunction::EuclideanSquared;
 
