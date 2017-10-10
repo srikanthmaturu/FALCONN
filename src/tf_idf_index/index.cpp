@@ -195,7 +195,9 @@ void process_queries_thresholds_test(index_type& tf_idf_falconn_i, vector<string
         //#pragma omp parallel for
         for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
             auto linear_res = tf_idf_falconn_i.get_nearest_neighbours_by_linear_method(queries[i], 30);
+            //std::cout << "Getting Linear Category Counts" << std::endl;
             auto edCategoryCounts = tf_idf_falconn_i.getCategoryCounts(queries[i], linear_res);
+            //std::cout << "Done" << std::endl;
             thresholds_test_results_file << i << "," << linear_res.size() << ",";
             for(auto it : edCategoryCounts){
                 thresholds_test_results_file << it.second << ",";
@@ -204,7 +206,10 @@ void process_queries_thresholds_test(index_type& tf_idf_falconn_i, vector<string
             for(double th = 10; th <= 150; th += 10) {
                 tf_idf_falconn_i.setThreshold(th/100.0);
                 auto res = tf_idf_falconn_i.match(queries[i]);
+                //std::cout << "Falconnn Threshold: " << th/100.0 << std::endl;
+                //std::cout << "Getting Falconn Category Counts"<< std::endl;
                 auto categoryCounts = tf_idf_falconn_i.getCategoryCounts(queries[i], res.second);
+                //std::cout << "Done" << std::endl;
                 auto cs_fp_fn_pair = get_comparison(linear_res, res.second);
                 thresholds_test_results_file << std::get<0>(cs_fp_fn_pair);
                 for(auto it : categoryCounts){
@@ -215,7 +220,7 @@ void process_queries_thresholds_test(index_type& tf_idf_falconn_i, vector<string
                     thresholds_test_results_file << ",";
                 }
             }
-            cout << "Processed " << i << endl;
+            //cout << "Processed " << i << endl;
             thresholds_test_results_file << endl;
         }
         query_results_vector.clear();

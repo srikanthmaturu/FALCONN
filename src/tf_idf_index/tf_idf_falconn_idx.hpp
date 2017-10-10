@@ -655,13 +655,23 @@ namespace tf_idf_falconn_index {
             for(uint8_t i = 1; i <= 4; i++){
                 categoryCounts[getEditDistanceCategory(i)] = 0;
             }
-            for(uint8_t i = 0; i < candidates.size() ; i++){
-                //std::cout << query << std::endl;
-                //std::cout << candidates[i] << std::endl;
-                //std::cout << "heheh\n" ;
+            //std::cout << "Q: " << query << std::endl;
+            //std::cout << "Candidates: " << (int)candidates.size() << std::endl;
+            //bool first = true;
+            for(uint64_t i = 0; i < candidates.size() ; i++){
+                /*if(i == 0 && !first){
+                    std::cout << "Problem!" << std::endl;
+                }else{
+                    first = false;
+                }*/
+
+                //std::cout << "C" << (int)i;
                 auto edit_distance = uiLevenshteinDistance(query, candidates[i]);
+                //std::cout << " " << (int)edit_distance << "\t";
                 categoryCounts[getEditDistanceCategory(getCategoryIndex(edit_distance))]++;
             }
+            //std::cout << std::endl;
+            //std::cout << "Complete" << std::endl;
             return std::move(categoryCounts);
         }
 
