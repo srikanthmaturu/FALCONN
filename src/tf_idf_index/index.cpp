@@ -246,7 +246,7 @@ void process_queries_with_multiple_methods(index_type& tf_idf_falconn_i, vector<
 }
 
 template<class index_type>
-void process_queries(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file){
+void process_queries(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file, bool displayEditDistance){
     vector< vector< pair<string, uint64_t > > > query_results_vector;
     uint64_t block_size = 100000;
     uint64_t queries_size = queries.size();
@@ -293,7 +293,12 @@ void process_queries(index_type& tf_idf_falconn_i, vector<string>& queries, ofst
             results_file << ">" << queries[i] << endl;
             cout << "Stored results of " << i << endl;
             for(size_t k=0; k<query_results_vector[j].size(); k++){
-                results_file << "" << query_results_vector[j][k].first.c_str() << "  " << query_results_vector[j][k].second << endl;
+                results_file << "" << query_results_vector[j][k].first.c_str();
+                if (displayEditDistance){
+                    results_file << "  " << query_results_vector[j][k].second << endl;
+                }else{
+                    results_file << endl;
+                }
             }
         }
         query_results_vector.clear();
@@ -302,6 +307,75 @@ void process_queries(index_type& tf_idf_falconn_i, vector<string>& queries, ofst
     cout << "# time_per_search_query_in_seconds = " << (duration_cast<chrono::microseconds>(stop-start).count()/1000000.0)/(double)queries_size << endl;
     cout << "# total_time_for_entire_queries_in_seconds= " << duration_cast<chrono::microseconds>(stop-start).count() << endl;
 }
+
+template<class index_type>
+void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file, uint64_t maxED, bool displayEditDistance){
+    vector< vector< pair<string, uint64_t > > > query_results_vector;
+    uint64_t block_size = 100000;
+    uint64_t queries_size = queries.size();
+    std::cout << queries_size << std::endl;
+    if(queries_size < block_size){
+        block_size = queries_size;
+    }
+
+    uint64_t extra_block = queries_size % block_size;
+    uint64_t number_of_blocks =  queries_size / block_size;
+    map<uint64_t, vector<uint64_t>> editDistanceToSimilarKmersMap;
+    for(uint64_t i = 0; i <= maxED; i++){
+        editDistanceToSimilarKmersMap[i] = vector<uint64_t>();
+    }
+
+    if(extra_block > 0) {
+        number_of_blocks++;
+    }
+    auto start = timer::now();
+    //#pragma omp parallel
+    for(uint64_t bi = 0; bi < number_of_blocks; bi++){
+        uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
+        query_results_vector.resize(block_size);
+        //#pragma omp for
+        for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
+            auto res = tf_idf_falconn_i.match(queries[i]);
+
+            for(size_t k=0; k < res.second.size(); ++k){
+                uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[k]);
+                if(edit_distance == 0){
+                    continue;
+                }
+                if(edit_distance <= maxED){
+                    editDistanceToSimilarKmersMap[edit_distance].push_back(k);
+                }
+            }
+            for(size_t ed=0; ed < editDistanceToSimilarKmersMap.size(); ed++){
+                for(auto index:(editDistanceToSimilarKmersMap[ed])){
+                    string t = res.second[index];
+                    query_results_vector[i].push_back(make_pair(t, ed));
+                }
+                editDistanceToSimilarKmersMap[ed].clear();
+            }
+            cout << "Processed query: " << i << " Candidates: " << res.second.size() << endl;
+        }
+        //#pragma omp barrier
+
+        for(uint64_t i=bi * block_size, j = 0; i < block_end; i++, j++){
+            results_file << ">" << queries[i] << endl;
+            cout << "Stored results of " << i << endl;
+            for(size_t k=0; k<query_results_vector[j].size(); k++){
+                results_file << "" << query_results_vector[j][k].first.c_str();
+                if(displayEditDistance){
+                    results_file << "  " << query_results_vector[j][k].second << endl;
+                }else{
+                    results_file << endl;
+                }
+            }
+        }
+        query_results_vector.clear();
+    }
+    auto stop = timer::now();
+    cout << "# time_per_search_query_in_seconds = " << (duration_cast<chrono::microseconds>(stop-start).count()/1000000.0)/(double)queries_size << endl;
+    cout << "# total_time_for_entire_queries_in_seconds= " << duration_cast<chrono::microseconds>(stop-start).count() << endl;
+}
+
 
 int main(int argc, char* argv[]){
     constexpr uint64_t ngram_length = NGRAM_LENGTH;
@@ -322,7 +396,7 @@ int main(int argc, char* argv[]){
 #endif
 
     if ( argc < 5 ) {
-        cout << "Usage: ./" << argv[0] << " sequences_file query_file type_of_query_file(fasta|kmers) filter_enabled [type_of_test]" << endl;
+        cout << "Usage: ./" << argv[0] << " sequences_file query_file type_of_query_file(fasta|kmers) filter_option [additional_options]" << endl;
         return 1;
     }
 
@@ -341,7 +415,8 @@ int main(int argc, char* argv[]){
     string sequences_file = argv[1];
     string queries_file = argv[2];
     string type_of_query_file = argv[3];
-    string filter_enabled = argv[4];
+    string filter_option = argv[4];
+
     uint64_t database_kmer_size = 0;
     cout << "SF: " << sequences_file << " QF:" << queries_file << endl;
     string idx_file = idx_file_trait<ngram_length, use_tdfs, use_iidf, remap, lsh_hash, number_of_hash_tables, number_of_hash_bits, number_of_probes, threshold>::value(sequences_file);
@@ -387,29 +462,42 @@ int main(int argc, char* argv[]){
             load_sequences(queries_file, queries);
         }
         ofstream results_file(queries_results_file);
-        if(filter_enabled == "1"){
-            cout << "Filter enabled. Filtering based on edit-distance. Only kmers with least edit-distance to query is outputted." << endl;
-            if(argc == 6){
-                switch(stoi(argv[5])){
-                    case 0:
-                        process_queries_box_test(tf_idf_falconn_i, queries);
-                        break;
-                    case 1:
-                        process_queries_thresholds_test(tf_idf_falconn_i, queries);
-                        break;
-                    case 2:
-                        process_queries_linear_test(tf_idf_falconn_i, queries);
-                        break;
-                    case 3:
-                        process_queries_with_multiple_methods(tf_idf_falconn_i, queries);
-                        break;
-                }
+        if(filter_option == "1"){
+            cout << "Filter option is set to 1. Filtering based on edit-distance. Only kmers with least edit-distance to query is outputted." << endl;
+            process_queries(tf_idf_falconn_i, queries, results_file, true);
+            cout << "Saved results in the results file: " << queries_results_file << endl;
+        }
+        else if(filter_option == "2"){
+            if(argc < 6){
+                cout << "Specify maximum edit-distance as an option. Ex: 30" << endl;
+                return 1;
             }
-            else{
-                process_queries(tf_idf_falconn_i, queries, results_file);
-                cout << "Saved results in the results file: " << queries_results_file << endl;
+            uint64_t maxED = stoi(argv[5]);
+            cout << "Filter option is set to 2. Outputting similar-kmers with atmost edit-distance" << maxED << endl;
+            process_queries_by_maximum_edit_distance(tf_idf_falconn_i, queries, results_file, maxED, true);
+            cout << "Saved results in the results file: " << queries_results_file << endl;
+        }
+        else if(filter_option == "3"){
+            if(argc < 6){
+                cout << "Type of test is not specified. Ex: 1 for thresholds test" << endl;
+                return 1;
             }
-        }else{
+            switch(stoi(argv[5])){
+                case 0:
+                    process_queries_box_test(tf_idf_falconn_i, queries);
+                    break;
+                case 1:
+                    process_queries_thresholds_test(tf_idf_falconn_i, queries);
+                    break;
+                case 2:
+                    process_queries_linear_test(tf_idf_falconn_i, queries);
+                    break;
+                case 3:
+                    process_queries_with_multiple_methods(tf_idf_falconn_i, queries);
+                    break;
+            }
+        }
+        else{
             cout << "Filter disabled. So, outputting all similar kmers to query based on threshold given to falconn." << endl;
             auto start = timer::now();
             //#pragma omp parallel for
