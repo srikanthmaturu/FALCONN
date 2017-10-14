@@ -337,7 +337,7 @@ void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vect
         for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
             auto res = tf_idf_falconn_i.match(queries[i]);
 
-            for(size_t k=0; k < res.second.size(); ++k){
+            for(uint64_t k=0; k < res.second.size(); ++k){
                 uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[k]);
                 if(edit_distance == 0){
                     continue;
@@ -346,7 +346,7 @@ void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vect
                     editDistanceToSimilarKmersMap[edit_distance].push_back(k);
                 }
             }
-            for(size_t ed=0; ed < editDistanceToSimilarKmersMap.size(); ed++){
+            for(uint64_t ed=0; ed < editDistanceToSimilarKmersMap.size(); ed++){
                 for(auto index:(editDistanceToSimilarKmersMap[ed])){
                     string t = res.second[index];
                     query_results_vector[i].push_back(make_pair(t, ed));
@@ -360,7 +360,7 @@ void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vect
         for(uint64_t i=bi * block_size, j = 0; i < block_end; i++, j++){
             results_file << ">" << queries[i] << endl;
             cout << "Stored results of " << i << endl;
-            for(size_t k=0; k<query_results_vector[j].size(); k++){
+            for(uint64_t k=0; k<query_results_vector[j].size(); k++){
                 results_file << "" << query_results_vector[j][k].first.c_str();
                 if(displayEditDistance){
                     results_file << "  " << query_results_vector[j][k].second << endl;
