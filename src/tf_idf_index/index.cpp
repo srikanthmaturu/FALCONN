@@ -271,7 +271,7 @@ void process_queries(index_type& tf_idf_falconn_i, vector<string>& queries, ofst
             auto res = tf_idf_falconn_i.match(queries[i]);
 
             uint8_t minED = 100;
-            for(size_t k=0; k < res.second.size(); ++k){
+            for(uint64_t k=0; k < res.second.size(); ++k){
                 uint64_t edit_distance = uiLevenshteinDistance(queries[i], res.second[k]);
                 if(edit_distance == 0){
                     continue;
@@ -292,7 +292,7 @@ void process_queries(index_type& tf_idf_falconn_i, vector<string>& queries, ofst
         for(uint64_t i=bi * block_size, j = 0; i < block_end; i++, j++){
             results_file << ">" << queries[i] << endl;
             cout << "Stored results of " << i << endl;
-            for(size_t k=0; k<query_results_vector[j].size(); k++){
+            for(uint64_t k=0; k<query_results_vector[j].size(); k++){
                 results_file << "" << query_results_vector[j][k].first.c_str();
                 if (displayEditDistance){
                     results_file << "  " << query_results_vector[j][k].second << endl;
@@ -504,7 +504,7 @@ int main(int argc, char* argv[]){
             for(uint64_t i=0; i<queries.size(); i++){
                 results_file << ">" << queries[i] << endl;
                 auto res = tf_idf_falconn_i.match(queries[i]);
-                for(size_t j=0; j < res.second.size(); ++j){
+                for(uint64_t j=0; j < res.second.size(); ++j){
                     results_file << res.second[j].c_str()  << endl;
                 }
                 cout << "Processed query: " << i << " Matches:" << res.first <<endl;

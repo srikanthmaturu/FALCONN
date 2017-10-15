@@ -191,7 +191,7 @@ namespace tf_idf_falconn_index {
                 tf_idf_vector[d_num]++;
             }
             if(remap){
-                for(size_t i = 0; i < tf_vec_maximums.size(); i += 2){
+                for(uint64_t i = 0; i < tf_vec_maximums.size(); i += 2){
                     tf_idf_vector[i] = tf_vec_maximums[i] - tf_idf_vector[i];
                 }
             }
@@ -414,7 +414,7 @@ namespace tf_idf_falconn_index {
             // find the center of mass
             uint64_t data_size = dataset.size();
             center = dataset[rand() % data_size];
-            for (size_t i = 1; i < data_size; ++i) {
+            for (uint64_t i = 1; i < data_size; ++i) {
                 //dataset[i].normalize();
                 center += dataset[i];
             }
@@ -444,15 +444,15 @@ namespace tf_idf_falconn_index {
         typename std::enable_if<std::is_same<T, DenseVectorFloat>::value, void>::type remap_dataset() {
             uint64_t tf_vec_size = pow(4, ngram_length);
             tf_vec_maximums.resize(tf_vec_size, 0.0);
-            for (size_t i = 0; i < dataset.size(); ++i) {
-                for(size_t j = 0; j < tf_vec_size; ++j){
+            for (uint64_t i = 0; i < dataset.size(); ++i) {
+                for(uint64_t j = 0; j < tf_vec_size; ++j){
                     if(dataset[i][j] > tf_vec_maximums[j]){
                         tf_vec_maximums[j] = dataset[i][j];
                     }
                 }
             }
-            for (size_t i = 0; i <dataset.size(); ++i){
-                for(size_t j = 0; j < tf_vec_size; j += 2){
+            for (uint64_t i = 0; i <dataset.size(); ++i){
+                for(uint64_t j = 0; j < tf_vec_size; j += 2){
                     dataset[i][j] = tf_vec_maximums[j] - dataset[i][j];
                 }
             }
@@ -466,7 +466,7 @@ namespace tf_idf_falconn_index {
 
         template<class T>
         typename std::enable_if<std::is_same<T, DenseVectorFloat>::value, void>::type remap_query_tf_idf_vector(T& point) {
-            for(size_t i = 0; i < tf_vec_maximums.size(); i += 2){
+            for(uint64_t i = 0; i < tf_vec_maximums.size(); i += 2){
                 point[i] = tf_vec_maximums[i] - point[i];
             }
         }
