@@ -32,20 +32,7 @@ namespace tf_idf_falconn_index {
     template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, bool remap_t, uint64_t lsh_type, uint64_t number_of_hash_tables_t, uint64_t number_of_hash_bits_t, uint64_t number_of_probes_t, uint8_t threshold_t, class point_type_t=SparseVectorFloat>
     class tf_idf_falconn_idx {
     public:
-        tf_idf_falconn_idx() = default;
-
-        tf_idf_falconn_idx(const tf_idf_falconn_idx &) = default;
-
-        tf_idf_falconn_idx(tf_idf_falconn_idx &&) = default;
-
-        tf_idf_falconn_idx &operator=(const tf_idf_falconn_idx &) = default;
-
-        tf_idf_falconn_idx &operator=(tf_idf_falconn_idx &&) = default;
-
-        tf_idf_falconn_idx(std::vector<std::string> &data) {
-            original_data = data;
-            construct_dataset(data);
-            params.dimension = dataset[0].size();
+        tf_idf_falconn_idx() {
             switch(lsh_type){
                 case 1:
                     params.lsh_family = falconn::LSHFamily::Hyperplane;
@@ -56,7 +43,6 @@ namespace tf_idf_falconn_index {
             }
 
             params.l = number_of_hash_tables;
-            params.distance_function = falconn::DistanceFunction::EuclideanSquared;
 
             if (std::is_same<point_type, DenseVectorFloat>::value) {
                 params.num_rotations = 1;
@@ -65,13 +51,31 @@ namespace tf_idf_falconn_index {
                 params.num_rotations = 2;
                 params.feature_hashing_dimension = pow(4, ngram_length) / 2;
             }
+            threshold = (double_t) threshold_t / (double_t) 100;
+        }
+
+        tf_idf_falconn_idx(const tf_idf_falconn_idx &) = default;
+
+        tf_idf_falconn_idx(tf_idf_falconn_idx &&) = default;
+
+        tf_idf_falconn_idx &operator=(const tf_idf_falconn_idx &) = default;
+
+        tf_idf_falconn_idx &operator=(tf_idf_falconn_idx &&) = default;
+
+        tf_idf_falconn_idx(falconn::LSHConstructionParameters lshParams): params(lshParams) {
+
+        }
+
+        void constructIndex(std::vector<std::string> &data){
+            original_data = data;
+            construct_dataset(data);
+            params.dimension = dataset[0].size();
+            params.distance_function = falconn::DistanceFunction::EuclideanSquared;
 
             // we want to use all the available threads to set up
             params.num_setup_threads = 1;
             params.storage_hash_table = falconn::StorageHashTable::BitPackedFlatHashTable;
             falconn::compute_number_of_hash_functions<point_type>(number_of_hash_bits, &params);
-
-            threshold = (double_t) threshold_t / (double_t) 100;
             std::cout << "FALCONN threshold set to " << threshold << std::endl;
         }
 
@@ -93,6 +97,10 @@ namespace tf_idf_falconn_index {
 
         void setThreshold(double_t threshold){
             this->threshold = threshold;
+        }
+
+        void setNGL(uint64_t ngram_length){
+            this->ngram_length = ngram_length;
         }
 
         typedef point_type_t point_type;
