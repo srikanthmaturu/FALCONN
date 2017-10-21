@@ -1,0 +1,4 @@
+[submodule "external/edlib"]
+	path = external/edlib
+	url = https://github.com/srikanthmaturu/edlib.git
+	branch = master

@@ -14,7 +14,10 @@ append_cxx_compiler_flags("-O3 -ffast-math -funroll-loops" "GCC" CMAKE_CXX_FLAGS
 set(CMAKE_CXX_STANDARD 14)
 
 INCLUDE_DIRECTORIES(${CMAKE_HOME_DIRECTORY}/external/eigen
+        ${CMAKE_HOME_DIRECTORY}/external/edlib/edlib/include
         ${CMAKE_HOME_DIRECTORY}/src/include)
+
+LINK_DIRECTORIES(${CMAKE_HOME_DIRECTORY}/external/edlib/build/lib)
 
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
@@ -60,7 +63,7 @@ FOREACH(line ${exp0.lines})
     STRING(REGEX REPLACE "(.*)<(.*)>" "\\1" point_type ${POINT_TYPE})
     SET(exec ${index_name}_NGL_${NGRAM_LENGTH}_UTD_${USE_TDFS}_UIF_${USE_IIDF}_RMP_${REMAP}_LT_${LSH_HASH_TYPE}_NHT_${NUMBER_OF_HASH_TABLES}_NHB_${NUMBER_OF_HASH_BITS}_NP_${NUMBER_OF_PROBES}_TH_${THRESHOLD}_PT_${point_type})
     ADD_EXECUTABLE(${exec} src/tf_idf_index/index.cpp)
-    TARGET_LINK_LIBRARIES(${exec} ${Boost_LIBRARIES} xxhash)
+    TARGET_LINK_LIBRARIES(${exec} ${Boost_LIBRARIES} xxhash edlib_static)
     SET_PROPERTY(TARGET ${exec} PROPERTY COMPILE_DEFINITIONS
             INDEX_NAME="${index_name}"
             INDEX_TYPE=${index_type}
@@ -78,7 +81,7 @@ FOREACH(line ${exp0.lines})
             )
     SET(nb_exec ${exec}_SV_NBV)
     ADD_EXECUTABLE(${nb_exec} src/tf_idf_index/index.cpp)
-    TARGET_LINK_LIBRARIES(${nb_exec} xxhash)
+    TARGET_LINK_LIBRARIES(${nb_exec} xxhash edlib_static)
     SET_PROPERTY(TARGET ${nb_exec} PROPERTY COMPILE_DEFINITIONS
             NGRAM_LENGTH=${NGRAM_LENGTH}
             USE_TDFS=${USE_TDFS}

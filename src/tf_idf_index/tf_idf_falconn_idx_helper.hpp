@@ -129,7 +129,7 @@ void getKmers(std::string fastaFileName, std::vector<std::string>& sequences, ui
         std::string line;
         std::getline(fastaFile, line);
 
-        if(!regex_search(line, e) && line.size() > kmerSize){
+        if(!regex_search(line, e) && line.size() >= kmerSize){
             for(uint64_t i = 0; i < line.size() - kmerSize + 1; i++){
                 sequences.push_back(line.substr(i, kmerSize));
             }
@@ -139,3 +139,4 @@ void getKmers(std::string fastaFileName, std::vector<std::string>& sequences, ui
     fastaFile.close();
     return;
 }
+

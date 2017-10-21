@@ -129,6 +129,11 @@ namespace tf_idf_falconn_index {
             query_object = table->construct_query_object(num_probes);
         }
 
+        unique_ptr<falconn::LSHNearestNeighborQuery<point_type>> createQueryObject(){
+            return table->construct_query_object(num_probes);
+        }
+
+
 #ifdef CUSTOM_BOOST_ENABLED
 
         void store_to_file(std::string idx_file) {
@@ -170,6 +175,28 @@ namespace tf_idf_falconn_index {
                 matches.push_back(original_data[i]);
             }
             return std::make_pair(matches.size(), matches);
+        }
+
+        std::pair<uint64_t, std::vector<std::string>> match(unique_ptr<falconn::LSHNearestNeighborQuery<point_type>>& thread_query_object, std::string query) {
+            auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
+            //std::cout << std::endl;
+            std::vector<int32_t> nearestNeighbours;
+            thread_query_object->find_near_neighbors(query_tf_idf_vector, threshold, &nearestNeighbours);
+            std::vector<std::string> matches;
+            for (auto i:nearestNeighbours) {
+                matches.push_back(original_data[i]);
+            }
+            return std::make_pair(matches.size(), matches);
+        }
+
+        void getNearestNeighboursByEditDistance(std::string query, std::vector<int32_t> nearestNeighbours, uint64_t maxEditDistance){
+            auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
+            query_object->find_near_neighbors(query_tf_idf_vector, threshold, &nearestNeighbours);
+            for (auto i:nearestNeighbours) {
+                if(uiLevenshteinDistance(query, original_data[i]) <= maxEditDistance){
+                    nearestNeighbours.push_back(i);
+                }
+            }
         }
 
         void getQueryBucketIds(std::string query){
