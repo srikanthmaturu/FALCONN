@@ -203,10 +203,15 @@ namespace tf_idf_falconn_index {
 
         void getNearestNeighboursByEditDistance(unique_ptr<falconn::LSHNearestNeighborQuery<point_type>>& thread_query_object, std::string query, std::vector<int32_t> nearestNeighbours, uint64_t maxEditDistance){
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
-            thread_query_object->find_near_neighbors(query_tf_idf_vector, threshold, &nearestNeighbours);
-            for (auto i:nearestNeighbours) {
-                if(uiLevenshteinDistance(query, original_data[i]) <= maxEditDistance){
-                    nearestNeighbours.push_back(i);
+            std::vector<int32_t> nearestNeighboursCandidates;
+            thread_query_object->find_near_neighbors(query_tf_idf_vector, threshold, &nearestNeighboursCandidates);
+            for (auto i:nearestNeighboursCandidates) {
+                try{
+                    if(uiLevenshteinDistance(query, original_data[i]) <= maxEditDistance){
+                        nearestNeighbours.push_back(i);
+                    }
+                }
+                catch(exception e){
                 }
             }
         }
