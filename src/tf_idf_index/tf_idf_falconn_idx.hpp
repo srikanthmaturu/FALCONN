@@ -66,7 +66,7 @@ namespace tf_idf_falconn_index {
 
         }
 
-        void constructIndex(std::vector<std::string> &data){
+        void initialize(std::vector<std::string> &data){
             original_data = data;
             construct_dataset(data);
             params.dimension = dataset[0].size();
@@ -101,6 +101,10 @@ namespace tf_idf_falconn_index {
 
         void setNGL(uint64_t ngram_length){
             this->ngram_length = ngram_length;
+        }
+
+        void setNumberOfProbes(uint64_t numberOfProbes){
+            this->num_probes = numberOfProbes;
         }
 
         typedef point_type_t point_type;

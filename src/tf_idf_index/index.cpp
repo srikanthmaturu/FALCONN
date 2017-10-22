@@ -473,7 +473,7 @@ int main(int argc, char* argv[]) {
             {
                 cout<< "Index construction begins"<< endl;
                 auto temp = tf_idf_falconn_index_type();
-                temp.constructIndex(sequences);
+                temp.initialize(sequences);
                 tf_idf_falconn_i = std::move(temp);
             }
             tf_idf_falconn_i.store_to_file(idx_file);
@@ -490,7 +490,7 @@ int main(int argc, char* argv[]) {
         load_sequences(sequences_file, sequences);
         cout << "Kmer size: " << sequences[0].size() << endl;
         database_kmer_size = sequences[0].size();
-        tf_idf_falconn_i.constructIndex(sequences);
+        tf_idf_falconn_i.initialize(sequences);
 #endif
         //tf_idf_falconn_i.printLSHConstructionParameters();
         tf_idf_falconn_i.construct_table();
