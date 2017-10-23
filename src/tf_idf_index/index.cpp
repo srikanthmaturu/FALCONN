@@ -128,7 +128,7 @@ void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& quer
 
     uint64_t polytope_vertices = NGRAM_LENGTH * 2 + 1;
 
-    for(uint64_t l = 32; l <= 64; l += 32){
+    for(uint64_t l = 32; l <= 256; l += 32){
         for(uint64_t nhb = polytope_vertices; nhb <= polytope_vertices * 3; nhb += polytope_vertices){
             uint64_t np_max = 0;
             if(nhb == 7){
