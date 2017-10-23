@@ -46,10 +46,10 @@ namespace tf_idf_falconn_index {
 
             if (std::is_same<point_type, DenseVectorFloat>::value) {
                 params.num_rotations = 1;
-                params.feature_hashing_dimension = pow(4, ngram_length);
+                params.feature_hashing_dimension = pow(4, ngram_length)/2;
             } else {
                 params.num_rotations = 2;
-                params.feature_hashing_dimension = pow(4, ngram_length) / 2;
+                params.feature_hashing_dimension = 128;
             }
             threshold = (double_t) threshold_t / (double_t) 100;
         }
@@ -69,7 +69,7 @@ namespace tf_idf_falconn_index {
         void initialize(std::vector<std::string> &data){
             original_data = data;
             construct_dataset(data);
-            params.dimension = dataset[0].size();
+            params.dimension =  pow(4, ngram_length);
             params.distance_function = falconn::DistanceFunction::EuclideanSquared;
 
             // we want to use all the available threads to set up
@@ -447,8 +447,9 @@ namespace tf_idf_falconn_index {
             SparseVectorFloat point;
             int32_t tf_idf_vector_size = tf_idf_vector.size();
             for (int32_t i = 0; i < tf_idf_vector_size; i++) {
-//                if(tf_idf_vector[i] != 0){}
-                point.push_back(std::make_pair(i, tf_idf_vector[i]));
+                if(tf_idf_vector[i] != 0){
+                    point.push_back(std::make_pair(i, tf_idf_vector[i]));
+                }
             }
             return point;
         }
@@ -521,6 +522,7 @@ namespace tf_idf_falconn_index {
         };
 
         void linear_test(std::string query, std::ofstream &results_file) {
+#ifdef DENSEVECTORFLOAT
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
             auto query_pure_tf_idf_vector = get_pure_tf_idf_vector(query);
             std::vector<std::string> results(dataset.size());
@@ -541,6 +543,7 @@ namespace tf_idf_falconn_index {
             for (uint64_t i = 0; i < results.size(); i++) {
                 results_file << results[i];
             }
+#endif
         }
 
         std::vector<string>& get_nearest_neighbours_by_linear_method(std::string query, uint64_t edit_distance_threshold) {
@@ -593,6 +596,7 @@ namespace tf_idf_falconn_index {
         }
 
         void get_nearest_neighbours_by_linear_method_using_multiple_methods(ofstream& results_file, std::string query, uint64_t edit_distance_threshold, double_t cosine_distance_threshold) {
+#ifdef DENSEVECTORFLOAT
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
             auto query_pure_tf_idf_vector = get_pure_tf_idf_vector(query);
             std::map<uint64_t, std::vector<std::pair<uint16_t, std::string>>> nearest_neighbours;
@@ -700,6 +704,7 @@ namespace tf_idf_falconn_index {
                     nearest_neighbours[i].clear();
                 }
             }
+#endif
         }
 
         std::map<std::string,uint64_t> getCategoryCounts(std::string query, std::vector<std::string> candidates){

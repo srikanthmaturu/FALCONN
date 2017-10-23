@@ -413,6 +413,76 @@ void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vect
     cout << "# total_time_for_entire_queries_in_seconds= " << duration_cast<chrono::microseconds>(stop-start).count() << endl;
 }
 
+bool fetchFastaBatchQueries(ifstream& queryFastaFile, vector<string>& queries, uint64_t batchSize, uint64_t kmerSize){
+    regex e("^>");
+    smatch m;
+
+    while(!queryFastaFile.eof()){
+        std::string line;
+        std::getline(queryFastaFile, line);
+
+        if(!regex_search(line, e) && line.size() >= kmerSize){
+            uint64_t pos;
+            if((pos=line.find('\n')) != string::npos){
+                line.erase(pos);
+            }
+            if((pos=line.find('\r')) != string::npos){
+                line.erase(pos);
+            }
+            //cout << line << endl;
+            for(uint64_t i = 0; i < line.size() - kmerSize + 1; i++){
+                queries.push_back(line.substr(i, kmerSize));
+            }
+        }
+        if(queries.size() > batchSize){
+            break;
+        }
+    }
+    cout << "Fetched " << queries.size() << " kmers from query file." << endl;
+    if(queries.size() > 0) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+bool fetchKmerBatchQueries(ifstream& queries_file, vector<string>& queries, uint64_t batchSize){
+
+    for(string query; getline(queries_file, query);){
+        uint64_t pos;
+        if((pos=query.find('\n')) != string::npos){
+            query.erase(pos);
+        }
+        if((pos=query.find('\r')) != string::npos){
+            query.erase(pos);
+        }
+        queries.push_back(query);
+        if(queries.size() > batchSize){
+            break;
+        }
+    }
+    cout << "Fetched " << queries.size() << " kmers from query file." << endl;
+    if(queries.size() > 0) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+
+bool fetchBatchQueries(ifstream& queryFile, string fileType, vector<string>& queries, uint64_t batchSize, uint64_t kmerSize = -1){
+    if(fileType.find("kmers") != string::npos){
+        return fetchKmerBatchQueries(queryFile, queries, batchSize);
+    }
+    else if(fileType.find("fasta")  != string::npos){
+        return fetchFastaBatchQueries(queryFile, queries, batchSize, kmerSize);
+    }{
+        return false;
+    }
+}
+
 int main(int argc, char* argv[]) {
     constexpr uint64_t ngram_length = NGRAM_LENGTH;
     constexpr bool use_tdfs = USE_TDFS;
@@ -498,7 +568,13 @@ int main(int argc, char* argv[]) {
         if (type_of_query_file == "fasta") {
             cout << "Input Query File Type: fasta" << endl;
             getKmers(queries_file, queries, database_kmer_size);
-        } else {
+        }
+        else if (type_of_query_file.find("heavy") != string::npos ) {
+            cout << "Input Query File Type: heavy_fasta" << endl;
+            cout << "File won't be loaded completely." << endl;
+        }
+        else
+        {
             load_sequences(queries_file, queries);
         }
         cout << "Queries size: " << queries.size() << endl;
@@ -516,7 +592,16 @@ int main(int argc, char* argv[]) {
             }
             uint64_t maxED = stoi(argv[5]);
             cout << "Filter option is set to 2. Outputting similar-kmers with atmost edit-distance: " << maxED << endl;
-            process_queries_by_maximum_edit_distance(tf_idf_falconn_i, queries, results_file, maxED, false, true);
+
+            if(type_of_query_file.find("heavy") == string::npos){
+                process_queries_by_maximum_edit_distance(tf_idf_falconn_i, queries, results_file, maxED, false, true);
+            }else{
+                ifstream queryFileFS(queries_file);
+                while(fetchBatchQueries(queryFileFS, type_of_query_file, queries, 100000, database_kmer_size)){
+                    process_queries_by_maximum_edit_distance(tf_idf_falconn_i, queries, results_file, maxED, false, true);
+                    queries.clear();
+                }
+            }
             cout << "Saved results in the results file: " << queries_results_file << endl;
         } else if (filter_option == "3") {
             if (argc < 6) {
@@ -525,7 +610,15 @@ int main(int argc, char* argv[]) {
             }
             uint64_t maxED = stoi(argv[5]);
             cout << "Filter option is set to 3. Outputting similar-kmers with atmost edit-distance using Infix alignment method: " << maxED << endl;
-            process_queries_by_maximum_edit_distance(tf_idf_falconn_i, queries, results_file, maxED, true, true);
+            if(type_of_query_file.find("heavy") == string::npos){
+                process_queries_by_maximum_edit_distance(tf_idf_falconn_i, queries, results_file, maxED, true, true);
+            }else{
+                ifstream queryFileFS(queries_file);
+                while(fetchBatchQueries(queryFileFS, type_of_query_file, queries, 100000, database_kmer_size)){
+                    process_queries_by_maximum_edit_distance(tf_idf_falconn_i, queries, results_file, maxED, true, true);
+                    queries.clear();
+                }
+            }
             cout << "Saved results in the results file: " << queries_results_file << endl;
         } else if (filter_option == "4") {
             if (argc < 6) {

@@ -94,6 +94,7 @@ FOREACH(line ${exp0.lines})
             THRESHOLD=${THRESHOLD}
             POINT_TYPE=${POINT_TYPE}
             )
+
     message("Point type ${POINT_TYPE}")
     message("Target ${exec}")
     message("Index Type ${index_type}")
