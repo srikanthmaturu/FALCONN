@@ -521,8 +521,8 @@ namespace tf_idf_falconn_index {
 
         };
 
+#ifdef VT_DVF
         void linear_test(std::string query, std::ofstream &results_file) {
-#ifdef DENSEVECTORFLOAT
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
             auto query_pure_tf_idf_vector = get_pure_tf_idf_vector(query);
             std::vector<std::string> results(dataset.size());
@@ -543,8 +543,11 @@ namespace tf_idf_falconn_index {
             for (uint64_t i = 0; i < results.size(); i++) {
                 results_file << results[i];
             }
-#endif
         }
+#else
+        void linear_test(std::string query, std::ofstream &results_file) {
+        }
+#endif
 
         std::vector<string>& get_nearest_neighbours_by_linear_method(std::string query, uint64_t edit_distance_threshold) {
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
@@ -594,9 +597,8 @@ namespace tf_idf_falconn_index {
                 return "ED > 25";
             }
         }
-
+#ifdef VT_DVF
         void get_nearest_neighbours_by_linear_method_using_multiple_methods(ofstream& results_file, std::string query, uint64_t edit_distance_threshold, double_t cosine_distance_threshold) {
-#ifdef DENSEVECTORFLOAT
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
             auto query_pure_tf_idf_vector = get_pure_tf_idf_vector(query);
             std::map<uint64_t, std::vector<std::pair<uint16_t, std::string>>> nearest_neighbours;
@@ -704,9 +706,11 @@ namespace tf_idf_falconn_index {
                     nearest_neighbours[i].clear();
                 }
             }
-#endif
         }
-
+#else
+        void get_nearest_neighbours_by_linear_method_using_multiple_methods(ofstream& results_file, std::string query, uint64_t edit_distance_threshold, double_t cosine_distance_threshold){
+        }
+#endif
         std::map<std::string,uint64_t> getCategoryCounts(std::string query, std::vector<std::string> candidates){
             std::map<std::string,uint64_t> categoryCounts;
             for(uint8_t i = 1; i <= 4; i++){

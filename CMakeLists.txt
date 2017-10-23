@@ -64,6 +64,7 @@ FOREACH(line ${exp0.lines})
     SET(exec ${index_name}_NGL_${NGRAM_LENGTH}_UTD_${USE_TDFS}_UIF_${USE_IIDF}_RMP_${REMAP}_LT_${LSH_HASH_TYPE}_NHT_${NUMBER_OF_HASH_TABLES}_NHB_${NUMBER_OF_HASH_BITS}_NP_${NUMBER_OF_PROBES}_TH_${THRESHOLD}_PT_${point_type})
     ADD_EXECUTABLE(${exec} src/tf_idf_index/index.cpp)
     TARGET_LINK_LIBRARIES(${exec} ${Boost_LIBRARIES} xxhash edlib_static)
+    STRING(COMPARE EQUAL ${POINT_TYPE} DenseVectorFloat IsDenseVectorFloatType)
     SET_PROPERTY(TARGET ${exec} PROPERTY COMPILE_DEFINITIONS
             INDEX_NAME="${index_name}"
             INDEX_TYPE=${index_type}
@@ -94,7 +95,15 @@ FOREACH(line ${exp0.lines})
             THRESHOLD=${THRESHOLD}
             POINT_TYPE=${POINT_TYPE}
             )
-
+    if(IsDenseVectorFloatType)
+        GET_TARGET_PROPERTY(current_properties ${exec} COMPILE_DEFINITIONS)
+        SET_PROPERTY(TARGET ${exec} PROPERTY COMPILE_DEFINITIONS ${current_properties}
+                VT_DVF=true)
+        GET_TARGET_PROPERTY(current_properties ${nb_exec} COMPILE_DEFINITIONS)
+        SET_PROPERTY(TARGET ${nb_exec} PROPERTY COMPILE_DEFINITIONS ${current_properties}
+                VT_DVF=true)
+        message("Set VT_DVF compile definition")
+    endif(IsDenseVectorFloatType)
     message("Point type ${POINT_TYPE}")
     message("Target ${exec}")
     message("Index Type ${index_type}")

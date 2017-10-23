@@ -369,8 +369,7 @@ void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vect
                 }else{
                     edit_distance = uiLevenshteinDistance(queries[i], res.second[k]);
                 }
-
-                if(edit_distance == 0){
+                if(edit_distance <= 0){
                     continue;
                 }
                 if(edit_distance <= maxED){
@@ -384,7 +383,7 @@ void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vect
                 }
                 editDistanceToSimilarKmersMapObjects[currentThreadId][ed].clear();
             }
-            //cout << "Processed query: " << i << " Candidates: " << res.second.size() << endl;
+            cout << "Processed query: " + to_string(i) + " Candidates: " + to_string(res.second.size()) << endl;
         }
     };
     cout << "Processed queries " << bi * block_size + 1 << " - " << to_string(block_end) << endl;
@@ -633,6 +632,9 @@ int main(int argc, char* argv[]) {
                     process_queries_thresholds_test(tf_idf_falconn_i, queries);
                     break;
                 case 2:
+#ifdef VT_DVF
+                    cout << "VT_DVF: enabled" << endl;
+#endif
                     process_queries_linear_test(tf_idf_falconn_i, queries);
                     break;
                 case 3:
