@@ -46,7 +46,7 @@ namespace tf_idf_falconn_index {
 
             if (std::is_same<point_type, DenseVectorFloat>::value) {
                 params.num_rotations = 1;
-                params.feature_hashing_dimension = pow(4, ngram_length)/2;
+                params.feature_hashing_dimension = pow(4, ngram_length);
             } else {
                 params.num_rotations = 2;
                 params.feature_hashing_dimension = 128;
