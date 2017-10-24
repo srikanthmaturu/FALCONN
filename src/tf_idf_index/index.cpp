@@ -93,14 +93,16 @@ double process_queries_parallely(index_type& tf_idf_falconn_i, vector<string>& q
             auto cs_fp_fn_pair = get_comparison(linear_res, res.second);
             realMatchesCount += (linear_res.size());
             actualMatchesCount += (get<0>(cs_fp_fn_pair) - get<1>(cs_fp_fn_pair));
+            cout << "Linear_res: " << linear_res.size() << " TruePositives: " << (get<0>(cs_fp_fn_pair) - get<1>(cs_fp_fn_pair)) <<  " FalsePositives: " << get<1>(cs_fp_fn_pair) << " FalseNegatives: " << (get<2>(cs_fp_fn_pair)) << endl;
         }
     }
+
     double recall = (actualMatchesCount * 1.0) /(realMatchesCount * 1.0);
     return recall;
 }
 
 template<class index_type>
-void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& queries){
+void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& queries, double threshold){
     ofstream box_test_results_file("box_test_results_NGL_" + to_string(NGRAM_LENGTH) + ".csv");
 
     uint64_t block_size = 100000;
@@ -115,7 +117,7 @@ void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& quer
     if(extra_block > 0) {
         number_of_blocks++;
     }
-
+    tf_idf_falconn_i.setThreshold(threshold);
     vector<vector<uint64_t>> queries_linear_results(queries.size(),vector<uint64_t>(3,0));
     vector<vector<string>> linear_results;
 
@@ -626,7 +628,11 @@ int main(int argc, char* argv[]) {
             }
             switch (stoi(argv[5])) {
                 case 0:
-                    process_queries_box_test(tf_idf_falconn_i, queries);
+                    if(argc < 7){
+                        cout << "Input threshold value. Ex: 50 for 0.5" << endl;
+                        return 1;
+                    }
+                    process_queries_box_test(tf_idf_falconn_i, queries, stoi(argv[6])/100.0));
                     break;
                 case 1:
                     process_queries_thresholds_test(tf_idf_falconn_i, queries);
