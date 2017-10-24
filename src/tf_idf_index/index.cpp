@@ -632,7 +632,7 @@ int main(int argc, char* argv[]) {
                         cout << "Input threshold value. Ex: 50 for 0.5" << endl;
                         return 1;
                     }
-                    process_queries_box_test(tf_idf_falconn_i, queries, stoi(argv[6])/100.0));
+                    process_queries_box_test(tf_idf_falconn_i, queries, stoi(argv[6])/100.0);
                     break;
                 case 1:
                     process_queries_thresholds_test(tf_idf_falconn_i, queries);
