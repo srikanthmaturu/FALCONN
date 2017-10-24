@@ -319,7 +319,7 @@ void process_queries(index_type& tf_idf_falconn_i, vector<string>& queries, ofst
 }
 
 template<class index_type>
-void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file, uint64_t maxED, bool useEdlib, bool displayEditDistance){
+void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file, uint64_t maxED, bool useEdlib, bool displayEditDistance, bool parallel){
     EdlibAlignConfig edlibConfig = edlibNewAlignConfig(maxED, EDLIB_MODE_NW, EDLIB_TASK_DISTANCE, NULL, 0);
     vector< vector< pair<string, uint64_t > > > query_results_vector;
     uint64_t block_size = 100000;
@@ -339,29 +339,62 @@ void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vect
 
     map<uint64_t, unique_ptr<falconn::LSHNearestNeighborQuery<POINT_TYPE>>> queryObjects;
     map<uint64_t, map<uint64_t, vector<uint64_t>>> editDistanceToSimilarKmersMapObjects;
+    map<uint64_t, vector<uint64_t>> editDistanceToSimilarKmersMap;
     //omp_set_num_threads(1);
     uint64_t bi = 0;
     process_blocks:
     uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
     uint64_t current_block_size = block_end - (bi * block_size);
     query_results_vector.resize(block_size);
-    #pragma omp parallel
-    {
-        #pragma omp single
+    if(parallel) {
+#pragma omp parallel
         {
-            for(int64_t threadId = 0; threadId < omp_get_num_threads(); threadId++){
-                queryObjects[threadId] =tf_idf_falconn_i.createQueryObject();
-                editDistanceToSimilarKmersMapObjects[threadId] = map<uint64_t, vector<uint64_t>>();
-                for(uint64_t i = 0; i <= maxED; i++){
-                    editDistanceToSimilarKmersMapObjects[threadId][i] = vector<uint64_t>();
+#pragma omp single
+            {
+                for (int64_t threadId = 0; threadId < omp_get_num_threads(); threadId++) {
+                    queryObjects[threadId] = tf_idf_falconn_i.createQueryObject();
+                    editDistanceToSimilarKmersMapObjects[threadId] = map<uint64_t, vector<uint64_t>>();
+                    for (uint64_t i = 0; i <= maxED; i++) {
+                        editDistanceToSimilarKmersMapObjects[threadId][i] = vector<uint64_t>();
+                    }
                 }
             }
+#pragma omp for
+            for (uint64_t j = 0; j < current_block_size; j++) {
+                uint64_t i = bi * block_size + j;
+                uint64_t currentThreadId = omp_get_thread_num();
+                auto res = tf_idf_falconn_i.match(queryObjects[currentThreadId], queries[i]);
+
+                for (uint64_t k = 0; k < res.second.size(); ++k) {
+                    uint64_t edit_distance;
+                    if (useEdlib) {
+                        EdlibAlignResult ed_result = edlibAlign(queries[i].c_str(), queries[i].size(),
+                                                                res.second[k].c_str(), res.second[k].size(), edlibConfig);
+                        edit_distance = ed_result.editDistance;
+                    } else {
+                        edit_distance = uiLevenshteinDistance(queries[i], res.second[k]);
+                    }
+                    if (edit_distance <= 0) {
+                        continue;
+                    }
+                    if (edit_distance <= maxED) {
+                        editDistanceToSimilarKmersMapObjects[currentThreadId][edit_distance].push_back(k);
+                    }
+                }
+                for (uint64_t ed = 0; ed < editDistanceToSimilarKmersMapObjects[currentThreadId].size(); ed++) {
+                    for (auto index:(editDistanceToSimilarKmersMapObjects[currentThreadId][ed])) {
+                        string t = res.second[index];
+                        query_results_vector[i].push_back(make_pair(t, ed));
+                    }
+                    editDistanceToSimilarKmersMapObjects[currentThreadId][ed].clear();
+                }
+                cout << "Processed query: " + to_string(i) + " Candidates: " + to_string(res.second.size()) << endl;
+            }
         }
-        #pragma omp for
+    }else{
         for(uint64_t j = 0; j < current_block_size; j++){
             uint64_t i = bi * block_size + j;
-            uint64_t currentThreadId = omp_get_thread_num();
-            auto res = tf_idf_falconn_i.match(queryObjects[currentThreadId], queries[i]);
+            auto res = tf_idf_falconn_i.match(queries[i]);
 
             for(uint64_t k=0; k < res.second.size(); ++k){
                 uint64_t edit_distance;
@@ -375,19 +408,19 @@ void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vect
                     continue;
                 }
                 if(edit_distance <= maxED){
-                    editDistanceToSimilarKmersMapObjects[currentThreadId][edit_distance].push_back(k);
+                    editDistanceToSimilarKmersMap[edit_distance].push_back(k);
                 }
             }
-            for(uint64_t ed=0; ed < editDistanceToSimilarKmersMapObjects[currentThreadId].size(); ed++){
-                for(auto index:(editDistanceToSimilarKmersMapObjects[currentThreadId][ed])){
+            for(uint64_t ed=0; ed <= maxED; ed++){
+                for(auto index:(editDistanceToSimilarKmersMap[ed])){
                     string t = res.second[index];
                     query_results_vector[i].push_back(make_pair(t, ed));
                 }
-                editDistanceToSimilarKmersMapObjects[currentThreadId][ed].clear();
+                editDistanceToSimilarKmersMap[ed].clear();
             }
             cout << "Processed query: " + to_string(i) + " Candidates: " + to_string(res.second.size()) << endl;
         }
-    };
+    }
     cout << "Processed queries " << bi * block_size + 1 << " - " << to_string(block_end) << endl;
     //#pragma omp barrier
 
@@ -591,15 +624,19 @@ int main(int argc, char* argv[]) {
                 cout << "Specify maximum edit-distance as an option. Ex: 30" << endl;
                 return 1;
             }
+            bool parallel = false;
+            if(argc == 7){
+                parallel = stoi(argv[6]);
+            }
             uint64_t maxED = stoi(argv[5]);
             cout << "Filter option is set to 2. Outputting similar-kmers with atmost edit-distance: " << maxED << endl;
 
             if(type_of_query_file.find("heavy") == string::npos){
-                process_queries_by_maximum_edit_distance(tf_idf_falconn_i, queries, results_file, maxED, false, true);
+                process_queries_by_maximum_edit_distance(tf_idf_falconn_i, queries, results_file, maxED, false, true, parallel);
             }else{
                 ifstream queryFileFS(queries_file);
                 while(fetchBatchQueries(queryFileFS, type_of_query_file, queries, 100000, database_kmer_size)){
-                    process_queries_by_maximum_edit_distance(tf_idf_falconn_i, queries, results_file, maxED, false, true);
+                    process_queries_by_maximum_edit_distance(tf_idf_falconn_i, queries, results_file, maxED, false, true, parallel);
                     queries.clear();
                 }
             }
@@ -609,14 +646,18 @@ int main(int argc, char* argv[]) {
                 cout << "Specify maximum edit-distance as an option. Ex: 30" << endl;
                 return 1;
             }
+            bool parallel = false;
+            if(argc == 7){
+                parallel = stoi(argv[6]);
+            }
             uint64_t maxED = stoi(argv[5]);
             cout << "Filter option is set to 3. Outputting similar-kmers with atmost edit-distance using Infix alignment method: " << maxED << endl;
             if(type_of_query_file.find("heavy") == string::npos){
-                process_queries_by_maximum_edit_distance(tf_idf_falconn_i, queries, results_file, maxED, true, true);
+                process_queries_by_maximum_edit_distance(tf_idf_falconn_i, queries, results_file, maxED, true, true, parallel);
             }else{
                 ifstream queryFileFS(queries_file);
                 while(fetchBatchQueries(queryFileFS, type_of_query_file, queries, 100000, database_kmer_size)){
-                    process_queries_by_maximum_edit_distance(tf_idf_falconn_i, queries, results_file, maxED, true, true);
+                    process_queries_by_maximum_edit_distance(tf_idf_falconn_i, queries, results_file, maxED, true, true, parallel);
                     queries.clear();
                 }
             }
