@@ -322,7 +322,7 @@ template<class index_type>
 void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vector<string>& queries, ofstream& results_file, uint64_t maxED, bool useEdlib, bool displayEditDistance, bool parallel){
     EdlibAlignConfig edlibConfig = edlibNewAlignConfig(maxED, EDLIB_MODE_NW, EDLIB_TASK_DISTANCE, NULL, 0);
     vector< vector< pair<string, uint64_t > > > query_results_vector;
-    uint64_t block_size = 100000;
+    uint64_t block_size = 10000;
     uint64_t queries_size = queries.size();
 
     if(queries_size < block_size){
@@ -347,6 +347,7 @@ void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vect
     uint64_t current_block_size = block_end - (bi * block_size);
     query_results_vector.resize(block_size);
     if(parallel) {
+#ifdef _OMP_H
 #pragma omp parallel
         {
 #pragma omp single
@@ -391,6 +392,7 @@ void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vect
                 cout << "Processed query: " + to_string(i) + " Candidates: " + to_string(res.second.size()) << endl;
             }
         }
+#endif
     }else{
         for(uint64_t j = 0; j < current_block_size; j++){
             uint64_t i = bi * block_size + j;

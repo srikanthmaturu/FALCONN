@@ -221,6 +221,18 @@ namespace tf_idf_falconn_index {
             return query_object->getQueryBucketIds(query_tf_idf_vector);
         }
 
+        double_t getFuncValue(double_t value, int8_t type){
+            switch(type){
+                case 0:
+                    return log10(1 + value);
+                case 1:
+                    return log10(value);
+                case 2:
+                    return value;
+            }
+            return value;
+        }
+
         point_type getQuery_tf_idf_vector(std::string query) {
             uint64_t tf_vec_size = pow(4, ngram_length);
             uint64_t string_size = query.size();
@@ -243,13 +255,16 @@ namespace tf_idf_falconn_index {
             for (uint64_t i = 0; i < tf_vec_size; i++) {
                 if (tf_idf_vector[i] > 0) {
                     if (!use_tdfs) {
-                        tf_idf_vector[i] = (1 + log10(tf_idf_vector[i]));
-                    } else if (!use_iidf) {
-                        if (tdfs[i] > 0) {
-                            tf_idf_vector[i] *= ((log10(1 + (data_size / tdfs[i]))));
-                        }
+                        tf_idf_vector[i] = getFuncValue(tf_idf_vector[i],2);
                     } else {
-                        tf_idf_vector[i] *= ((log10(1 + ((double) tdfs[i] / (double) data_size))));
+                        tf_idf_vector[i] = (1 + log10(tf_idf_vector[i]));
+                        if (!use_iidf) {
+                            if (tdfs[i] > 0) {
+                                tf_idf_vector[i] *= ((log10(1 + (data_size / tdfs[i]))));
+                            }
+                        } else {
+                            tf_idf_vector[i] *= ((log10(1 + ((double) tdfs[i] / (double) data_size))));
+                        }
                     }
                     vec_sq_sum += pow(tf_idf_vector[i], 2);
                 }
@@ -288,13 +303,16 @@ namespace tf_idf_falconn_index {
             for (uint64_t i = 0; i < tf_vec_size; i++) {
                 if (tf_idf_vector[i] > 0) {
                     if (!use_tdfs) {
-                        tf_idf_vector[i] = (1 + log10(tf_idf_vector[i]));
-                    } else if (!use_iidf) {
-                        if (tdfs[i] > 0) {
-                            tf_idf_vector[i] *= ((log10(1 + (data_size / tdfs[i]))));
-                        }
+                        tf_idf_vector[i] = getFuncValue(tf_idf_vector[i],2);
                     } else {
-                        tf_idf_vector[i] *= ((log10(1 + ((double) tdfs[i] / (double) data_size))));
+                        tf_idf_vector[i] = (1 + log10(tf_idf_vector[i]));
+                        if (!use_iidf) {
+                            if (tdfs[i] > 0) {
+                                tf_idf_vector[i] *= ((log10(1 + (data_size / tdfs[i]))));
+                            }
+                        } else {
+                            tf_idf_vector[i] *= ((log10(1 + ((double) tdfs[i] / (double) data_size))));
+                        }
                     }
                 }
             }
@@ -319,7 +337,11 @@ namespace tf_idf_falconn_index {
             }
             for (uint64_t i = 0; i < tf_vec_size; i++) {
                 if (tf_idf_vector[i] > 0) {
-                    tf_idf_vector[i] = (1 + log10(tf_idf_vector[i]));
+                    if (use_tdfs) {
+                        tf_idf_vector[i] = (1 + log10(tf_idf_vector[i]));
+                    }
+                    tf_idf_vector[i] = getFuncValue(tf_idf_vector[i],2);
+
                 }
             }
             point_type point = get_point<point_type>(tf_idf_vector);
@@ -347,8 +369,9 @@ namespace tf_idf_falconn_index {
                 }
                 for (uint64_t j = 0; j < tf_vec_size; j++) {
                     if (tf_idf_vectors[i][j] > 0) {
-                        tf_idf_vectors[i][j] = (1 + log10(tf_idf_vectors[i][j]));
+                        tf_idf_vectors[i][j] = getFuncValue(tf_idf_vectors[i][j], 2);
                         if (use_tdfs) {
+                            tf_idf_vectors[i][j] = (1 + log10(tf_idf_vectors[i][j]));
                             tdfs[j]++;
                         }
                     }
@@ -410,7 +433,10 @@ namespace tf_idf_falconn_index {
                 }
                 for (uint64_t j = 0; j < tf_vec_size; j++) {
                     if (tf_idf_vectors[i][j] > 0) {
-                        tf_idf_vectors[i][j] = (1 + log10(tf_idf_vectors[i][j]));
+                        tf_idf_vectors[i][j] = getFuncValue(tf_idf_vectors[i][j], 2);
+                        if (use_tdfs) {
+                            tf_idf_vectors[i][j] = (1 + log10(tf_idf_vectors[i][j]));
+                        }
                     }
                 }
                 double_t vec_sq_sum = 0.0;
