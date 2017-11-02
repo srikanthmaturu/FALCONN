@@ -93,7 +93,7 @@ double process_queries_parallely(index_type& tf_idf_falconn_i, vector<string>& q
             auto cs_fp_fn_pair = get_comparison(linear_res, res.second);
             realMatchesCount += (linear_res.size());
             actualMatchesCount += (get<0>(cs_fp_fn_pair) - get<1>(cs_fp_fn_pair));
-            cout << "Linear_res: " << linear_res.size() << " TruePositives: " << (get<0>(cs_fp_fn_pair) - get<1>(cs_fp_fn_pair)) <<  " FalsePositives: " << get<1>(cs_fp_fn_pair) << " FalseNegatives: " << (get<2>(cs_fp_fn_pair)) << endl;
+            //cout << "Linear_res: " << linear_res.size() << " TruePositives: " << (get<0>(cs_fp_fn_pair) - get<1>(cs_fp_fn_pair)) <<  " FalsePositives: " << get<1>(cs_fp_fn_pair) << " FalseNegatives: " << (get<2>(cs_fp_fn_pair)) << endl;
         }
     }
 
@@ -102,7 +102,7 @@ double process_queries_parallely(index_type& tf_idf_falconn_i, vector<string>& q
 }
 
 template<class index_type>
-void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& queries, double threshold){
+void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& queries, double threshold, uint8_t maxED){
     ofstream box_test_results_file("box_test_results_NGL_" + to_string(NGRAM_LENGTH) + ".csv");
 
     uint64_t block_size = 100000;
@@ -124,7 +124,7 @@ void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& quer
     for(uint64_t bi = 0; bi < number_of_blocks; bi++){
         uint64_t block_end = (bi == (number_of_blocks-1))? queries_size : (bi + 1)*block_size;
         for(uint64_t i= bi * block_size, j = 0; i< block_end; i++, j++){
-            linear_results.push_back(tf_idf_falconn_i.get_nearest_neighbours_by_linear_method(queries[i], 30));
+            linear_results.push_back(tf_idf_falconn_i.get_nearest_neighbours_by_linear_method(queries[i], maxED));
         }
     }
 
@@ -153,7 +153,7 @@ void process_queries_box_test(index_type& tf_idf_falconn_i, vector<string>& quer
                     step *= 2;
                     np_max = np + step * 2;
                 }
-                if(recall >= 0.95 ||  np_max > 1000000){
+                if(recall >= 0.99 ||  np_max > 1000000){
                     break;
                 }
             }
@@ -385,7 +385,7 @@ void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vect
                 for (uint64_t ed = 0; ed < editDistanceToSimilarKmersMapObjects[currentThreadId].size(); ed++) {
                     for (auto index:(editDistanceToSimilarKmersMapObjects[currentThreadId][ed])) {
                         string t = res.second[index];
-                        query_results_vector[i].push_back(make_pair(t, ed));
+                        query_results_vector[j].push_back(make_pair(t, ed));
                     }
                     editDistanceToSimilarKmersMapObjects[currentThreadId][ed].clear();
                 }
@@ -416,7 +416,7 @@ void process_queries_by_maximum_edit_distance(index_type& tf_idf_falconn_i, vect
             for(uint64_t ed=0; ed <= maxED; ed++){
                 for(auto index:(editDistanceToSimilarKmersMap[ed])){
                     string t = res.second[index];
-                    query_results_vector[i].push_back(make_pair(t, ed));
+                    query_results_vector[j].push_back(make_pair(t, ed));
                 }
                 editDistanceToSimilarKmersMap[ed].clear();
             }
@@ -671,11 +671,11 @@ int main(int argc, char* argv[]) {
             }
             switch (stoi(argv[5])) {
                 case 0:
-                    if(argc < 7){
-                        cout << "Input threshold value. Ex: 50 for 0.5" << endl;
+                    if(argc < 8){
+                        cout << "Input threshold value. Ex: 50 for 0.5 and Maximum edit distance" << endl;
                         return 1;
                     }
-                    process_queries_box_test(tf_idf_falconn_i, queries, stoi(argv[6])/100.0);
+                    process_queries_box_test(tf_idf_falconn_i, queries, stoi(argv[6])/100.0, stoi(argv[7]));
                     break;
                 case 1:
                     process_queries_thresholds_test(tf_idf_falconn_i, queries);
