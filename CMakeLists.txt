@@ -58,10 +58,11 @@ FOREACH(line ${exp0.lines})
     LIST(GET t_params 6 NUMBER_OF_HASH_BITS)
     LIST(GET t_params 7 NUMBER_OF_PROBES)
     LIST(GET t_params 8 THRESHOLD)
+    LIST(GET t_params 9 DATASET_TYPE)
     LIST(LENGTH t_params p_size)
-    LIST(GET t_params 9 POINT_TYPE)
+    LIST(GET t_params 10 POINT_TYPE)
     STRING(REGEX REPLACE "(.*)<(.*)>" "\\1" point_type ${POINT_TYPE})
-    SET(exec ${index_name}_NGL_${NGRAM_LENGTH}_UTD_${USE_TDFS}_UIF_${USE_IIDF}_RMP_${REMAP}_LT_${LSH_HASH_TYPE}_NHT_${NUMBER_OF_HASH_TABLES}_NHB_${NUMBER_OF_HASH_BITS}_NP_${NUMBER_OF_PROBES}_TH_${THRESHOLD}_PT_${point_type})
+    SET(exec ${index_name}_NL_${NGRAM_LENGTH}_UTD_${USE_TDFS}_UIF_${USE_IIDF}_RP_${REMAP}_LT_${LSH_HASH_TYPE}_NHT_${NUMBER_OF_HASH_TABLES}_NHB_${NUMBER_OF_HASH_BITS}_NP_${NUMBER_OF_PROBES}_TH_${THRESHOLD}_DT_${DATASET_TYPE}_PT_${point_type})
     ADD_EXECUTABLE(${exec} src/tf_idf_index/index.cpp)
     TARGET_LINK_LIBRARIES(${exec} ${Boost_LIBRARIES} xxhash edlib_static)
     STRING(COMPARE EQUAL ${POINT_TYPE} DenseVectorFloat IsDenseVectorFloatType)
@@ -77,6 +78,7 @@ FOREACH(line ${exp0.lines})
             NUMBER_OF_HASH_BITS=${NUMBER_OF_HASH_BITS}
             NUMBER_OF_PROBES=${NUMBER_OF_PROBES}
             THRESHOLD=${THRESHOLD}
+            DATASET_TYPE=${DATASET_TYPE}
             POINT_TYPE=${POINT_TYPE}
             CUSTOM_BOOST_ENABLED=true
             )
@@ -93,6 +95,7 @@ FOREACH(line ${exp0.lines})
             NUMBER_OF_HASH_BITS=${NUMBER_OF_HASH_BITS}
             NUMBER_OF_PROBES=${NUMBER_OF_PROBES}
             THRESHOLD=${THRESHOLD}
+            DATASET_TYPE=${DATASET_TYPE}
             POINT_TYPE=${POINT_TYPE}
             )
     if(IsDenseVectorFloatType)

@@ -34,6 +34,12 @@ using namespace std;
 std::map<char, int> Mapp = {{'A', 0}, {'C', 1}, {'G', 2}, {'T', 3}, {'N', 4}};
 std::map<int, char> Mapp_r = {{0, 'A'}, {1, 'C'}, {2, 'G'}, {3, 'T'}, {4, 'N'}};
 
+std::map<char, int> a_map = {{'A', 0},
+                             {'C', 1},
+                             {'G', 2},
+                             {'T', 3},
+                             {'N', 4}};
+
 uint8_t hamming_distance(std::string& fs, std::string& ss){
     uint8_t hm_distance = 0;
 

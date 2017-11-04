@@ -16,6 +16,7 @@
 #include <math.h>
 #include <tuple>
 #include "tf_idf_falconn_idx_helper.hpp"
+#include "tf_vector.hpp"
 
 #ifdef CUSTOM_BOOST_ENABLED
 #include "eigen_boost_serialization.hpp"
@@ -29,7 +30,7 @@
 #include <falconn/lsh_nn_table.h>
 
 namespace tf_idf_falconn_index {
-    template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, bool remap_t, uint64_t lsh_type, uint64_t number_of_hash_tables_t, uint64_t number_of_hash_bits_t, uint64_t number_of_probes_t, uint8_t threshold_t, class point_type_t=SparseVectorFloat>
+    template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, bool remap_t, uint64_t lsh_type, uint64_t number_of_hash_tables_t, uint64_t number_of_hash_bits_t, uint64_t number_of_probes_t, uint8_t threshold_t, uint8_t dataset_type_t, class point_type_t=SparseVectorFloat>
     class tf_idf_falconn_idx {
     public:
         tf_idf_falconn_idx() {
@@ -111,6 +112,10 @@ namespace tf_idf_falconn_index {
             this->num_probes = numberOfProbes;
         }
 
+        void setDatasetType(uint64_t dataset_type){
+            this->dataset_type = dataset_type;
+        }
+
         typedef point_type_t point_type;
         typedef vector<point_type> Dataset;
 
@@ -124,16 +129,12 @@ namespace tf_idf_falconn_index {
         bool use_iidf = use_iidf_t;
         bool remap = remap_t;
         double_t threshold;
+        uint8_t dataset_type = dataset_type_t;
 
         std::vector<std::string> original_data;
         uint64_t ngram_length = ngram_length_t;
         std::vector<uint64_t> tdfs;
         std::vector<double_t> tf_vec_maximums;
-        std::map<char, int> a_map = {{'A', 0},
-                                     {'C', 1},
-                                     {'G', 2},
-                                     {'T', 3},
-                                     {'N', 4}};
 
         unique_ptr<falconn::LSHNearestNeighborTable<point_type>> table;
         unique_ptr<falconn::LSHNearestNeighborQuery<point_type>> query_object;
@@ -182,7 +183,7 @@ namespace tf_idf_falconn_index {
 #endif
 
         std::pair<uint64_t, std::vector<std::string>> match(std::string query) {
-            auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
+            auto query_tf_idf_vector = getQueryVector(query);
             //std::cout << std::endl;
             std::vector<int32_t> nearestNeighbours;
             query_object->find_near_neighbors(query_tf_idf_vector, threshold, &nearestNeighbours);
@@ -194,7 +195,7 @@ namespace tf_idf_falconn_index {
         }
 
         std::pair<uint64_t, std::vector<std::string>> match(unique_ptr<falconn::LSHNearestNeighborQuery<point_type>>& thread_query_object, std::string query) {
-            auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
+            auto query_tf_idf_vector = getQueryVector(query);
             //std::cout << std::endl;
             std::vector<int32_t> nearestNeighbours;
             thread_query_object->find_near_neighbors(query_tf_idf_vector, threshold, &nearestNeighbours);
@@ -206,7 +207,7 @@ namespace tf_idf_falconn_index {
         }
 
         void getNearestNeighboursByEditDistance(unique_ptr<falconn::LSHNearestNeighborQuery<point_type>>& thread_query_object, std::string query, std::vector<int32_t> nearestNeighbours, uint64_t maxEditDistance){
-            auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
+            auto query_tf_idf_vector = getQueryVector(query);
             std::vector<int32_t> nearestNeighboursCandidates;
             thread_query_object->find_near_neighbors(query_tf_idf_vector, threshold, &nearestNeighboursCandidates);
             for (auto i:nearestNeighboursCandidates) {
@@ -220,15 +221,15 @@ namespace tf_idf_falconn_index {
             }
         }
 
-        std::pair<uint64_t, std::vector<int32_t>*>& getNearestNeighbours(std::string query){
-            auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
+        std::pair<uint64_t, std::vector<int32_t>*> getNearestNeighbours(std::string query){
+            auto query_tf_idf_vector = getQueryVector(query);
             std::vector<int32_t> * nearestNeighbours = new std::vector<int32_t>();
             query_object->find_near_neighbors(query_tf_idf_vector, threshold, nearestNeighbours);
             return std::make_pair(nearestNeighbours->size(), nearestNeighbours);
         };
 
-        std::pair<uint64_t, std::vector<int32_t>*>& getNearestNeighbours(unique_ptr<falconn::LSHNearestNeighborQuery<point_type>>& thread_query_object, std::string query){
-            auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
+        std::pair<uint64_t, std::vector<int32_t>*> getNearestNeighbours(unique_ptr<falconn::LSHNearestNeighborQuery<point_type>>& thread_query_object, std::string query){
+            auto query_tf_idf_vector = getQueryVector(query);
             std::vector<int32_t> * nearestNeighbours = new std::vector<int32_t>();
             thread_query_object->find_near_neighbors(query_tf_idf_vector, threshold, nearestNeighbours);
             return std::make_pair(nearestNeighbours->size(), nearestNeighbours);
@@ -249,6 +250,35 @@ namespace tf_idf_falconn_index {
                     return value;
             }
             return value;
+        }
+
+        point_type getQueryVector(std::string query){
+            switch(dataset_type){
+                case 0:
+                    return getQuery_tf_idf_vector(query);
+                case 1:
+                    return get_query_dmk_vector<point_type>(query, ngram_length);
+                default:
+                    std::cout << "Invalid dataset type." << endl;
+                    exit(1);
+            }
+        }
+
+        void construct_dataset(std::vector<std::string> &data){
+            switch(dataset_type){
+                case 0:
+                    construct_tf_idf_dataset(data);
+                break;
+                case 1:
+                    construct_dmk_dataset(data, dataset, ngram_length);
+                    if (std::is_same<point_type, DenseVectorFloat>::value) {
+                        re_center_dataset<point_type>();
+                    }
+                break;
+                default:
+                    std::cout << "Invalid dataset type." << endl;
+                    exit(1);
+            }
         }
 
         point_type getQuery_tf_idf_vector(std::string query) {
@@ -366,9 +396,9 @@ namespace tf_idf_falconn_index {
             return point;
         }
 
-        void construct_dataset(std::vector<std::string> &data) {
+        void construct_tf_idf_dataset(std::vector<std::string> &data) {
             if(remap){
-                return construct_dataset_by_remap(data);
+                return construct_tf_idf_dataset_by_remap(data);
             }
             uint64_t tf_vec_size = pow(4, ngram_length);
             uint64_t data_size = data.size();
@@ -423,7 +453,7 @@ namespace tf_idf_falconn_index {
             }
         }
 
-        void construct_dataset_by_remap(std::vector<std::string> &data) {
+        void construct_tf_idf_dataset_by_remap(std::vector<std::string> &data) {
             uint64_t tf_vec_size = pow(4, ngram_length);
             uint64_t data_size = data.size();
             uint64_t string_size = data[0].size();
@@ -472,30 +502,6 @@ namespace tf_idf_falconn_index {
             if (std::is_same<point_type, DenseVectorFloat>::value) {
                 re_center_dataset<point_type>();
             }
-        }
-
-        template<class T>
-        typename std::enable_if<std::is_same<T, DenseVectorFloat>::value, T>::type
-        get_point(VectorFloat tf_idf_vector) {
-            DenseVectorFloat point;
-            point.resize(tf_idf_vector.size());
-            for (uint64_t i = 0; i < tf_idf_vector.size(); i++) {
-                point[i] = tf_idf_vector[i];
-            }
-            return point;
-        }
-
-        template<class T>
-        typename std::enable_if<std::is_same<T, SparseVectorFloat>::value, T>::type
-        get_point(VectorFloat tf_idf_vector) {
-            SparseVectorFloat point;
-            int32_t tf_idf_vector_size = tf_idf_vector.size();
-            for (int32_t i = 0; i < tf_idf_vector_size; i++) {
-                if(tf_idf_vector[i] != 0){
-                    point.push_back(std::make_pair(i, tf_idf_vector[i]));
-                }
-            }
-            return point;
         }
 
         template<class T>
@@ -567,15 +573,15 @@ namespace tf_idf_falconn_index {
 
 #ifdef VT_DVF
         void linear_test(std::string query, std::ofstream &results_file) {
-            auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
+            auto query_vector = getQueryVector(query);
             auto query_pure_tf_idf_vector = get_pure_tf_idf_vector(query);
             std::vector<std::string> results(dataset.size());
             #pragma omp parallel for
             for (uint64_t i = 0; i < original_data.size(); i++) {
                 auto data_item_pure_tf_idf_vector = get_pure_tf_idf_vector(original_data[i]);
-                auto cosine_angle = acos(dataset[i].dot(query_tf_idf_vector))/ 3.14;
-                auto cosine_distance = dataset[i].dot(query_tf_idf_vector);
-                auto euclidean_distance = (dataset[i] - query_tf_idf_vector).squaredNorm();
+                auto cosine_angle = acos(dataset[i].dot(query_vector))/ 3.14;
+                auto cosine_distance = dataset[i].dot(query_vector);
+                auto euclidean_distance = (dataset[i] - query_vector).squaredNorm();
                 auto pure_cosine_distance = data_item_pure_tf_idf_vector.dot(query_pure_tf_idf_vector)/(data_item_pure_tf_idf_vector.norm() * query_pure_tf_idf_vector.norm());
                 auto pure_cosine_angle = acos(pure_cosine_distance)/3.14;
                 auto pure_euclidean_distance = (data_item_pure_tf_idf_vector - query_pure_tf_idf_vector).squaredNorm();
@@ -594,7 +600,6 @@ namespace tf_idf_falconn_index {
 #endif
 
         std::vector<string>& get_nearest_neighbours_by_linear_method(std::string query, uint64_t edit_distance_threshold) {
-            auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
             std::vector<std::string> * nearest_neighbours = new std::vector<std::string>();
             #pragma omp parallel for
             for (uint64_t i = 0; i < original_data.size(); i++) {
@@ -781,7 +786,6 @@ namespace tf_idf_falconn_index {
         }
 
         std::pair<uint64_t, uint64_t> count_nearest_neighbours(std::string query) {
-            auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
             std::pair<uint64_t, uint64_t> nnPair;
             uint8_t minEd = 100;
             #pragma omp parallel for
