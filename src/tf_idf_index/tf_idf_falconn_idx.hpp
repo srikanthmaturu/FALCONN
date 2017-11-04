@@ -66,6 +66,10 @@ namespace tf_idf_falconn_index {
 
         }
 
+        void setlshParams(falconn::LSHConstructionParameters lshParams){
+            params = lshParams;
+        }
+
         void initialize(std::vector<std::string> &data){
             original_data = data;
             construct_dataset(data);
@@ -215,6 +219,20 @@ namespace tf_idf_falconn_index {
                 }
             }
         }
+
+        std::pair<uint64_t, std::vector<int32_t>*>& getNearestNeighbours(std::string query){
+            auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
+            std::vector<int32_t> * nearestNeighbours = new std::vector<int32_t>();
+            query_object->find_near_neighbors(query_tf_idf_vector, threshold, nearestNeighbours);
+            return std::make_pair(nearestNeighbours->size(), nearestNeighbours);
+        };
+
+        std::pair<uint64_t, std::vector<int32_t>*>& getNearestNeighbours(unique_ptr<falconn::LSHNearestNeighborQuery<point_type>>& thread_query_object, std::string query){
+            auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
+            std::vector<int32_t> * nearestNeighbours = new std::vector<int32_t>();
+            thread_query_object->find_near_neighbors(query_tf_idf_vector, threshold, nearestNeighbours);
+            return std::make_pair(nearestNeighbours->size(), nearestNeighbours);
+        };
 
         void getQueryBucketIds(std::string query){
             auto query_tf_idf_vector = getQuery_tf_idf_vector(query);
