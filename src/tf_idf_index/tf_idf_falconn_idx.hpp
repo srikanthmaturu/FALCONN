@@ -409,12 +409,11 @@ namespace tf_idf_falconn_index {
             }
             uint64_t tf_vec_size = pow(4, ngram_length);
             uint64_t data_size = data.size();
-            uint64_t string_size = data[0].size();
             tdfs.resize(tf_vec_size);
             vector<VectorFloat> tf_idf_vectors(data_size, VectorFloat(tf_vec_size, 0));
             vector<double> vec_sq_sums(data_size);
             for (uint64_t i = 0; i < data_size; i++) {
-                for (uint64_t j = 0; j < string_size - ngram_length + 1; j++) {
+                for (uint64_t j = 0; j < data[i].size() - ngram_length + 1; j++) {
                     std::string ngram = data[i].substr(j, ngram_length);
                     uint64_t d_num = 0;
                     for (uint64_t k = 0; k < ngram_length; k++) {
@@ -463,12 +462,11 @@ namespace tf_idf_falconn_index {
         void construct_tf_idf_dataset_by_remap(std::vector<std::string> &data) {
             uint64_t tf_vec_size = pow(4, ngram_length);
             uint64_t data_size = data.size();
-            uint64_t string_size = data[0].size();
             tf_vec_maximums.resize(tf_vec_size, 0.0);
             vector<VectorFloat> tf_idf_vectors(data_size, VectorFloat(tf_vec_size, 0));
             vector<double> vec_sq_sums(data_size);
             for (uint64_t i = 0; i < data_size; i++) {
-                for (uint64_t j = 0; j < string_size - ngram_length + 1; j++) {
+                for (uint64_t j = 0; j < data[i].size() - ngram_length + 1; j++) {
                     std::string ngram = data[i].substr(j, ngram_length);
                     uint64_t d_num = 0;
                     for (uint64_t k = 0; k < ngram_length; k++) {
