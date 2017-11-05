@@ -39,6 +39,7 @@ get_point(VectorFloat tf_idf_vector) {
 }
 
 VectorFloat compute_dmk_vector(std::string sequence, uint8_t ngram_length){
+    //std::cout << "New Sequence " << std::endl;
     uint64_t dmk_vec_size = pow(4, ngram_length);
     VectorFloat dmkVector(dmk_vec_size,0);
     std::vector<std::vector<double>> v(dmk_vec_size,std::vector<double>());
@@ -49,39 +50,61 @@ VectorFloat compute_dmk_vector(std::string sequence, uint8_t ngram_length){
         for (uint64_t j = 0; j < ngram_length; j++) {
             d_num += a_map[ngram[j]] * pow(4, (ngram_length - j - 1));
         }
-        v[d_num].push_back(i);
+        //std::cout << ngram << " " << d_num << std::endl;
+        v[d_num].push_back(i+1);
     }
+    //std::cout << dmk_vec_size << " " << dmkVector.size() << " " << v.size() << std::endl;
     double vec_sq_sum = 0.0;
     for(uint64_t i = 0; i < v.size(); i++){
-        //calculating alpha values
-        if(v[i].size() > 0){
-            v[i][0] = 1.0 / v[i][0];
+        if(v[i].size() == 0){
+            continue;
         }
-        for(uint64_t j = 1; j < v[i].size(); j++){
+//        for(uint64_t j = 0; j < v[i].size() ; j++){
+//            std::cout << v[i][j] << "\t";
+//        }
+//        std::cout << std::endl;
+        //calculating alpha values
+        for(int64_t j = (v[i].size() - 1); j > 0 ; j--){
             v[i][j] = 1.0 / (v[i][j] - v[i][j-1]);
         }
+        v[i][0] = 1.0 / v[i][0];
+//        for(uint64_t j = 0; j < v[i].size() ; j++){
+//            std::cout << v[i][j] << "\t";
+//        }
+//        std::cout << std::endl;
+
         //calculating beta values
-        double bSum = 0.0;
-        for(uint64_t j = 0; j < v[i].size(); j++) {
-            for(uint64_t k = 0; k <=j ; k++ ){
-                v[i][j] += v[i][k];
-            }
+        double bSum = v[i][0];
+        for(uint64_t j = 1; j < v[i].size(); j++) {
+            v[i][j] += v[i][j-1];
             bSum += v[i][j];
         }
+//        for(uint64_t j = 0; j < v[i].size() ; j++){
+//            std::cout << v[i][j] << "\t";
+//        }
+//        std::cout << std::endl;
+        //std::cout << bSum << std::endl;
         //calculatinb shanon's entropy
         double entropy = 0.0;
         for(uint64_t j = 0; j < v[i].size(); j++){
             v[i][j] /= bSum;
             entropy += -1 * v[i][j] * log2(v[i][j]);
         }
+//        for(uint64_t j = 0; j < v[i].size() ; j++){
+//            std::cout << v[i][j] << "\t";
+//        }
+//        std::cout << std::endl;
         dmkVector[i] = entropy;
         vec_sq_sum += pow(entropy, 2);
+        //std::cout << "Entropy: " << entropy <<  "  " << vec_sq_sum << std::endl;
     }
     vec_sq_sum = pow(vec_sq_sum, 0.5);
-
+    //std::cout << vec_sq_sum << std::endl;
     for(uint64_t i = 0; i < dmkVector.size(); i++){
         dmkVector[i] /= vec_sq_sum;
+        //std::cout << dmkVector[i] << "\t" ;
     }
+    //std::cout << std::endl;
     return dmkVector;
 }
 
@@ -89,7 +112,7 @@ template<class T>
 void construct_dmk_dataset(std::vector<std::string> &data, std::vector<T>& dmk_dataset, uint8_t ngram_length) {
     uint64_t data_size = data.size();
     dmk_dataset.resize(data_size);
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for(uint64_t i = 0; i < data_size; i++){
         dmk_dataset[i] = get_point<T>(compute_dmk_vector(data[i], ngram_length));
     }
