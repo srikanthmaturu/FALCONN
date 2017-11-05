@@ -257,7 +257,11 @@ namespace tf_idf_falconn_index {
                 case 0:
                     return getQuery_tf_idf_vector(query);
                 case 1:
-                    return get_query_dmk_vector<point_type>(query, ngram_length);
+                    auto point = get_query_dmk_vector<point_type>(query, ngram_length);
+                    if (std::is_same<point_type, DenseVectorFloat>::value) {
+                        subtract_center(point);
+                    }
+                    return point;
                 default:
                     std::cout << "Invalid dataset type." << endl;
                     exit(1);
