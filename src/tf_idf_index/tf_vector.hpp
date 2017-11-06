@@ -38,9 +38,9 @@ get_point(VectorFloat tf_idf_vector) {
     return point;
 }
 
-VectorFloat compute_dmk_vector(std::string sequence, uint8_t ngram_length){
+VectorFloat compute_dmk_vector(std::string sequence, uint8_t data_type, uint8_t ngram_length){
     //std::cout << "New Sequence " << std::endl;
-    uint64_t dmk_vec_size = pow(4, ngram_length);
+    uint64_t dmk_vec_size = pow(getAlphabetMapSize(data_type), ngram_length);
     VectorFloat dmkVector(dmk_vec_size,0);
     std::vector<std::vector<double>> v(dmk_vec_size,std::vector<double>());
     //Calculating p values
@@ -48,7 +48,7 @@ VectorFloat compute_dmk_vector(std::string sequence, uint8_t ngram_length){
         std::string ngram = sequence.substr(i, ngram_length);
         uint64_t d_num = 0;
         for (uint64_t j = 0; j < ngram_length; j++) {
-            d_num += a_map[ngram[j]] * pow(4, (ngram_length - j - 1));
+            d_num += getAlphabetMapValue(data_type,ngram[j]) * pow(4, (ngram_length - j - 1));
         }
         //std::cout << ngram << " " << d_num << std::endl;
         v[d_num].push_back(i+1);
@@ -109,16 +109,16 @@ VectorFloat compute_dmk_vector(std::string sequence, uint8_t ngram_length){
 }
 
 template<class T>
-void construct_dmk_dataset(std::vector<std::string> &data, std::vector<T>& dmk_dataset, uint8_t ngram_length) {
+void construct_dmk_dataset(std::vector<std::string> &data, std::vector<T>& dmk_dataset, uint8_t data_type, uint8_t ngram_length) {
     uint64_t data_size = data.size();
     dmk_dataset.resize(data_size);
     //#pragma omp parallel for
     for(uint64_t i = 0; i < data_size; i++){
-        dmk_dataset[i] = get_point<T>(compute_dmk_vector(data[i], ngram_length));
+        dmk_dataset[i] = get_point<T>(compute_dmk_vector(data[i], data_type, ngram_length));
     }
 }
 
 template<class T>
-T get_query_dmk_vector(std::string sequence, uint64_t ngram_length){
-    return get_point<T>(compute_dmk_vector(sequence, ngram_length));
+T get_query_dmk_vector(std::string sequence,  uint8_t data_type, uint64_t ngram_length){
+    return get_point<T>(compute_dmk_vector(sequence, data_type, ngram_length));
 }

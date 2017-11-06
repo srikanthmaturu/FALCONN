@@ -34,11 +34,48 @@ using namespace std;
 std::map<char, int> Mapp = {{'A', 0}, {'C', 1}, {'G', 2}, {'T', 3}, {'N', 4}};
 std::map<int, char> Mapp_r = {{0, 'A'}, {1, 'C'}, {2, 'G'}, {3, 'T'}, {4, 'N'}};
 
-std::map<char, int> a_map = {{'A', 0},
+std::map<char, int> d_map = {{'A', 0},
                              {'C', 1},
                              {'G', 2},
                              {'T', 3},
                              {'N', 4}};
+
+std::map<char, int> p_map = {{'A',0},{'R',1},{'N',2},{'D',3},{'C',4},
+                             {'Q',5},{'E',6},{'G',7},{'H',8},{'I',9},
+                             {'L',10},{'K',11},{'M',12},{'F',13},{'P',14},
+                             {'S',15},{'T',16},{'W',17},{'Y',18},{'V',19}};
+
+uint8_t getAlphabetMapSize(uint8_t data_type){
+    switch(data_type){
+        case 0:
+            return d_map.size();
+        case 1:
+            return p_map.size();
+        default:
+            std::cerr << "Invalid data type." << std::endl;
+            exit(1);
+    }
+}
+
+uint8_t getAlphabetMapValue(uint8_t data_type, char c){
+    switch(data_type){
+        case 0:
+            if(d_map.find(c) == d_map.end()){
+                std::cerr << "Invalid alphabet." << std::endl;
+                exit(1);
+            }
+            return d_map[c];
+        case 1:
+            if(p_map.find(c) == p_map.end()){
+                std::cerr << "Invalid alphabet." << std::endl;
+                exit(1);
+            }
+            return p_map[c];
+        default:
+            std::cerr << "Invalid data type." << std::endl;
+            exit(1);
+    }
+}
 
 uint8_t hamming_distance(std::string& fs, std::string& ss){
     uint8_t hm_distance = 0;

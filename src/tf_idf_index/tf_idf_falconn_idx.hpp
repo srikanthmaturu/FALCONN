@@ -30,7 +30,7 @@
 #include <falconn/lsh_nn_table.h>
 
 namespace tf_idf_falconn_index {
-    template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, bool remap_t, uint64_t lsh_type, uint64_t number_of_hash_tables_t, uint64_t number_of_hash_bits_t, uint64_t number_of_probes_t, uint8_t threshold_t, uint8_t dataset_type_t, class point_type_t=SparseVectorFloat>
+    template<uint64_t ngram_length_t, bool use_tdfs_t, bool use_iidf_t, bool remap_t, uint64_t lsh_type, uint64_t number_of_hash_tables_t, uint64_t number_of_hash_bits_t, uint64_t number_of_probes_t, uint8_t threshold_t, uint8_t dataset_type_t, uint8_t data_type_t, class point_type_t=SparseVectorFloat>
     class tf_idf_falconn_idx {
     public:
         tf_idf_falconn_idx() {
@@ -74,7 +74,7 @@ namespace tf_idf_falconn_index {
         void initialize(std::vector<std::string> &data){
             original_data = data;
             construct_dataset(data);
-            params.dimension =  pow(4, ngram_length);
+            params.dimension =  pow(getAlphabetMapSize(data_type), ngram_length);
             params.distance_function = falconn::DistanceFunction::EuclideanSquared;
 
             // we want to use all the available threads to set up
@@ -116,6 +116,10 @@ namespace tf_idf_falconn_index {
             this->dataset_type = dataset_type;
         }
 
+        void setDataType(uint8_t data_type){
+            this->data_type = data_type;
+        }
+
         typedef point_type_t point_type;
         typedef vector<point_type> Dataset;
 
@@ -130,6 +134,7 @@ namespace tf_idf_falconn_index {
         bool remap = remap_t;
         double_t threshold;
         uint8_t dataset_type = dataset_type_t;
+        uint8_t data_type = data_type_t;
 
         std::vector<std::string> original_data;
         uint64_t ngram_length = ngram_length_t;
@@ -259,7 +264,7 @@ namespace tf_idf_falconn_index {
                     point = getQuery_tf_idf_vector(query);
                     return point;
                 case 1:
-                    point = get_query_dmk_vector<point_type>(query, ngram_length);
+                    point = get_query_dmk_vector<point_type>(query, data_type, ngram_length);
                     if (std::is_same<point_type, DenseVectorFloat>::value) {
                         subtract_center(point);
                     }
@@ -277,7 +282,7 @@ namespace tf_idf_falconn_index {
                     construct_tf_idf_dataset(data);
                 break;
                 case 1:
-                    construct_dmk_dataset(data, dataset, ngram_length);
+                    construct_dmk_dataset(data, dataset, data_type, ngram_length);
                     if (std::is_same<point_type, DenseVectorFloat>::value) {
                         re_center_dataset<point_type>();
                     }
@@ -289,7 +294,7 @@ namespace tf_idf_falconn_index {
         }
 
         point_type getQuery_tf_idf_vector(std::string query) {
-            uint64_t tf_vec_size = pow(4, ngram_length);
+            uint64_t tf_vec_size = pow(getAlphabetMapSize(data_type), ngram_length);
             uint64_t string_size = query.size();
             uint64_t data_size = dataset.size();
             vector<float> tf_idf_vector(tf_vec_size, 0.0);
@@ -297,7 +302,7 @@ namespace tf_idf_falconn_index {
                 std::string ngram = query.substr(i, ngram_length);
                 uint64_t d_num = 0;
                 for (uint64_t j = 0; j < ngram_length; j++) {
-                    d_num += a_map[ngram[j]] * pow(4, (ngram_length - j - 1));
+                    d_num += getAlphabetMapValue(data_type, ngram[j]) * pow(4, (ngram_length - j - 1));
                 }
                 tf_idf_vector[d_num]++;
             }
@@ -343,7 +348,7 @@ namespace tf_idf_falconn_index {
             if(remap){
                 return get_pure_tf_idf_vector_by_remap(query);
             }
-            uint64_t tf_vec_size = pow(4, ngram_length);
+            uint64_t tf_vec_size = pow(getAlphabetMapSize(data_type), ngram_length);
             uint64_t string_size = query.size();
             uint64_t data_size = dataset.size();
             vector<float> tf_idf_vector(tf_vec_size, 0.0);
@@ -351,7 +356,7 @@ namespace tf_idf_falconn_index {
                 std::string ngram = query.substr(i, ngram_length);
                 uint64_t d_num = 0;
                 for (uint64_t j = 0; j < ngram_length; j++) {
-                    d_num += a_map[ngram[j]] * pow(4, (ngram_length - j - 1));
+                    d_num += getAlphabetMapValue(data_type, ngram[j]) * pow(4, (ngram_length - j - 1));
                 }
                 tf_idf_vector[d_num]++;
             }
@@ -376,14 +381,14 @@ namespace tf_idf_falconn_index {
         }
 
         point_type get_pure_tf_idf_vector_by_remap(std::string query) {
-            uint64_t tf_vec_size = pow(4, ngram_length);
+            uint64_t tf_vec_size = pow(getAlphabetMapSize(data_type), ngram_length);
             uint64_t string_size = query.size();
             vector<float> tf_idf_vector(tf_vec_size, 0.0);
             for (uint64_t i = 0; i < string_size - ngram_length + 1; i++) {
                 std::string ngram = query.substr(i, ngram_length);
                 uint64_t d_num = 0;
                 for (uint64_t j = 0; j < ngram_length; j++) {
-                    d_num += a_map[ngram[j]] * pow(4, (ngram_length - j - 1));
+                    d_num += getAlphabetMapValue(data_type, ngram[j]) * pow(4, (ngram_length - j - 1));
                 }
                 tf_idf_vector[d_num]++;
             }
@@ -407,7 +412,7 @@ namespace tf_idf_falconn_index {
             if(remap){
                 return construct_tf_idf_dataset_by_remap(data);
             }
-            uint64_t tf_vec_size = pow(4, ngram_length);
+            uint64_t tf_vec_size = pow(getAlphabetMapSize(data_type), ngram_length);
             uint64_t data_size = data.size();
             tdfs.resize(tf_vec_size);
             vector<VectorFloat> tf_idf_vectors(data_size, VectorFloat(tf_vec_size, 0));
@@ -417,7 +422,7 @@ namespace tf_idf_falconn_index {
                     std::string ngram = data[i].substr(j, ngram_length);
                     uint64_t d_num = 0;
                     for (uint64_t k = 0; k < ngram_length; k++) {
-                        d_num += a_map[ngram[k]] * pow(4, (ngram_length - k - 1));
+                        d_num += getAlphabetMapValue(data_type, ngram[k]) * pow(4, (ngram_length - k - 1));
                     }
                     tf_idf_vectors[i][d_num]++;
                 }
@@ -460,7 +465,7 @@ namespace tf_idf_falconn_index {
         }
 
         void construct_tf_idf_dataset_by_remap(std::vector<std::string> &data) {
-            uint64_t tf_vec_size = pow(4, ngram_length);
+            uint64_t tf_vec_size = pow(getAlphabetMapSize(data_type), ngram_length);
             uint64_t data_size = data.size();
             tf_vec_maximums.resize(tf_vec_size, 0.0);
             vector<VectorFloat> tf_idf_vectors(data_size, VectorFloat(tf_vec_size, 0));
@@ -470,7 +475,7 @@ namespace tf_idf_falconn_index {
                     std::string ngram = data[i].substr(j, ngram_length);
                     uint64_t d_num = 0;
                     for (uint64_t k = 0; k < ngram_length; k++) {
-                        d_num += a_map[ngram[k]] * pow(4, (ngram_length - k - 1));
+                        d_num += getAlphabetMapValue(data_type, ngram[k]) * pow(4, (ngram_length - k - 1));
                     }
                     tf_idf_vectors[i][d_num]++;
                 }
@@ -542,7 +547,7 @@ namespace tf_idf_falconn_index {
 
         template<class T>
         typename std::enable_if<std::is_same<T, DenseVectorFloat>::value, void>::type remap_dataset() {
-            uint64_t tf_vec_size = pow(4, ngram_length);
+            uint64_t tf_vec_size = pow(getAlphabetMapSize(data_type), ngram_length);
             tf_vec_maximums.resize(tf_vec_size, 0.0);
             for (uint64_t i = 0; i < dataset.size(); ++i) {
                 for(uint64_t j = 0; j < tf_vec_size; ++j){
