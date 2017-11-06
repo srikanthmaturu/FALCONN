@@ -43,14 +43,15 @@ std::map<char, int> d_map = {{'A', 0},
 std::map<char, int> p_map = {{'A',0},{'R',1},{'N',2},{'D',3},{'C',4},
                              {'Q',5},{'E',6},{'G',7},{'H',8},{'I',9},
                              {'L',10},{'K',11},{'M',12},{'F',13},{'P',14},
-                             {'S',15},{'T',16},{'W',17},{'Y',18},{'V',19}};
+                             {'S',15},{'T',16},{'W',17},{'Y',18},{'V',19},
+                             {'B',2},{'Z',5}};
 
 uint8_t getAlphabetMapSize(uint8_t data_type){
     switch(data_type){
         case 0:
-            return d_map.size();
+            return d_map.size() - 1;
         case 1:
-            return p_map.size();
+            return p_map.size() - 2;
         default:
             std::cerr << "Invalid data type." << std::endl;
             exit(1);
