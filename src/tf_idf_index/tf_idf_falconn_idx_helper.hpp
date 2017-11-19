@@ -17,6 +17,7 @@
 #include <tuple>
 #include <regex>
 #include "xxhash.h"
+#include "edlib.h"
 
 #include <falconn/lsh_nn_table.h>
 typedef falconn::DenseVector<float> DenseVectorFloat;
@@ -45,6 +46,8 @@ std::map<char, int> p_map = {{'A',0},{'R',1},{'N',2},{'D',3},{'C',4},
                              {'L',10},{'K',11},{'M',12},{'F',13},{'P',14},
                              {'S',15},{'T',16},{'W',17},{'Y',18},{'V',19},
                              {'B',2},{'Z',5}, {'x',0}};
+
+EdlibEqualityPair additionalEqualities[3] = {{'B','N'},{'Z','Q'}, {'x','A'}};
 
 uint8_t getAlphabetMapSize(uint8_t data_type){
     switch(data_type){
@@ -135,6 +138,25 @@ size_t uiLevenshteinDistance(const std::string &s1, const std::string &s2)
     delete [] costs;
 
     return result;
+}
+
+pair<uint64_t, uint64_t> getSequencesComparison(string s1, string s2){
+    EdlibAlignConfig edlibConfig = edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_PATH, additionalEqualities, 3);
+    EdlibAlignResult ed_result = edlibAlign(s1.c_str(), s1.size(), s2.c_str(), s2.size(), edlibConfig);
+    uint64_t matches = 0;
+    for(int64_t i = 0; i < ed_result.alignmentLength; i++) {
+        if(ed_result.alignment[i] == EDLIB_EDOP_MATCH) {
+            matches++;
+        }
+    }
+    auto p =  make_pair((uint64_t)matches, (uint64_t)ed_result.alignmentLength);
+    edlibFreeAlignResult(ed_result);
+    return p;
+};
+
+double getPercentIdentity(string s1, string s2){
+    auto p = getSequencesComparison(s1, s2);
+    return (p.first * 100.0)/(p.second * 1.0);
 }
 
 vector<uint64_t>& hashify_vector(vector<string>& sequences){
