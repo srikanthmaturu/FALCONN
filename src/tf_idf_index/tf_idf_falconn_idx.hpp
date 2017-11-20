@@ -591,6 +591,7 @@ namespace tf_idf_falconn_index {
                 auto data_item_pure_tf_idf_vector = get_pure_tf_idf_vector(original_data[i]);
                 auto cosine_angle = acos(dataset[i].dot(query_vector))/ 3.14;
                 auto cosine_distance = dataset[i].dot(query_vector);
+                cosine_distance = (cosine_distance > 1) ? 1 : cosine_distance;
                 auto euclidean_distance = (dataset[i] - query_vector).squaredNorm();
                 auto pure_cosine_distance = data_item_pure_tf_idf_vector.dot(query_pure_tf_idf_vector)/(data_item_pure_tf_idf_vector.norm() * query_pure_tf_idf_vector.norm());
                 auto pure_cosine_angle = acos(pure_cosine_distance)/3.14;
