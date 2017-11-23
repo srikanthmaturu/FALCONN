@@ -633,10 +633,7 @@ namespace tf_idf_falconn_index {
 #pragma omp parallel for
             for (uint64_t i = 0; i < original_data.size(); i++) {
                 auto percent_identity = (uint64_t)(getPercentIdentity(query, original_data[i]));
-                if(percent_identity == 100){
-                    continue;
-                }
-                else if(percent_identity >= percent_identity_threshold){
+                if(percent_identity >= percent_identity_threshold){
                     nearest_neighbours->push_back(original_data[i]);
                     //std::cout << original_data[i] << std::endl;
                 }else {
