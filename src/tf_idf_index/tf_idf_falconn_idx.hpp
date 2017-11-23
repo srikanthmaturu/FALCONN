@@ -628,6 +628,24 @@ namespace tf_idf_falconn_index {
             return *nearest_neighbours;
         }
 
+        std::vector<string>& get_nearest_neighbours_by_linear_method_by_percent_identity(std::string query, double percent_identity_threshold) {
+            std::vector<std::string> * nearest_neighbours = new std::vector<std::string>();
+#pragma omp parallel for
+            for (uint64_t i = 0; i < original_data.size(); i++) {
+                auto percent_identity = (uint64_t)(getPercentIdentity(query, original_data[i]));
+                if(percent_identity == 100){
+                    continue;
+                }
+                else if(percent_identity >= percent_identity_threshold){
+                    nearest_neighbours->push_back(original_data[i]);
+                    //std::cout << original_data[i] << std::endl;
+                }else {
+                    continue;
+                }
+            }
+            return *nearest_neighbours;
+        }
+
         uint8_t getCategoryIndex(uint16_t editDistance){
             if(editDistance <= 15){
                 return 1;
