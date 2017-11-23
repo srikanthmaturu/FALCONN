@@ -154,9 +154,9 @@ pair<uint64_t, uint64_t> getSequencesComparison(string s1, string s2){
     return p;
 };
 
-double getPercentIdentity(string s1, string s2){
+uint64_t getPercentIdentity(string s1, string s2){
     auto p = getSequencesComparison(s1, s2);
-    return (p.first * 100.0)/(p.second * 1.0);
+    return round((p.first * 100.0)/(p.second * 1.0));
 }
 
 vector<uint64_t>& hashify_vector(vector<string>& sequences){
