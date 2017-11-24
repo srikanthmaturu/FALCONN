@@ -180,7 +180,7 @@ uint64_t fastPercentIdentity(string s1, string s2, uint64_t percentIdentityThres
             matches++;
         }
     }
-    auto p =  make_pair((uint64_t)matches, (uint64_t)ed_result.alignmentLength);
+    auto p =  round((double)matches/(double)ed_result.alignmentLength);
     edlibFreeAlignResult(ed_result);
     return p;
 }
