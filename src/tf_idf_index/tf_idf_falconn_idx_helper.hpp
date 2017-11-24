@@ -159,6 +159,32 @@ uint64_t getPercentIdentity(string s1, string s2){
     return round((p.first * 100.0)/(p.second * 1.0));
 }
 
+uint64_t fastPercentIdentity(string s1, string s2, uint64_t percentIdentityThreshold) {
+    uint64_t s1_size = s1.size(), s2_size = s2.size();
+    double den = (s1_size > s2_size) ? s1_size : s2_size;
+    double num = ((s1_size > s2_size)) ? s2_size : s1_size;
+    if((num/den) * 100 < percentIdentityThreshold) {
+        return 0;
+    }
+    double pi = (percentIdentityThreshold * 1.0)/100.0;
+    uint64_t thEd = ceil((num - pi*den) / (double)pi);
+
+    EdlibAlignConfig edlibConfig = edlibNewAlignConfig(thEd, EDLIB_MODE_NW, EDLIB_TASK_PATH, additionalEqualities, 3);
+    EdlibAlignResult ed_result = edlibAlign(s1.c_str(), s1.size(), s2.c_str(), s2.size(), edlibConfig);
+    if(ed_result.editDistance < 0) {
+        return 0;
+    }
+    uint64_t matches = 0;
+    for(int64_t i = 0; i < ed_result.alignmentLength; i++) {
+        if(ed_result.alignment[i] == EDLIB_EDOP_MATCH) {
+            matches++;
+        }
+    }
+    auto p =  make_pair((uint64_t)matches, (uint64_t)ed_result.alignmentLength);
+    edlibFreeAlignResult(ed_result);
+    return p;
+}
+
 vector<uint64_t>& hashify_vector(vector<string>& sequences){
     vector<uint64_t> * hashes = new vector<uint64_t>();
     for(string s: sequences){
