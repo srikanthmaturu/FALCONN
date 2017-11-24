@@ -164,7 +164,7 @@ uint64_t fastPercentIdentity(string s1, string s2, uint64_t percentIdentityThres
     double den = (s1_size > s2_size) ? s1_size : s2_size;
     double num = ((s1_size > s2_size)) ? s2_size : s1_size;
     double pi = (percentIdentityThreshold * 1.0)/100.0;
-    if((num/den) * 100 < pi) {
+    if((num/den) * 100 < percentIdentityThreshold) {
         return 0;
     }
     uint64_t thEd = ceil((num - pi*den) / (double)pi);
@@ -180,7 +180,7 @@ uint64_t fastPercentIdentity(string s1, string s2, uint64_t percentIdentityThres
             matches++;
         }
     }
-    auto p =  round((double)matches/(double)ed_result.alignmentLength);
+    auto p =  round((matches * 100.0)/(double)ed_result.alignmentLength);
     edlibFreeAlignResult(ed_result);
     return p;
 }
