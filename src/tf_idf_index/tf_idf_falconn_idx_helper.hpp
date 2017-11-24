@@ -169,11 +169,9 @@ uint64_t fastPercentIdentity(string s1, string s2, uint64_t percentIdentityThres
     }
     uint64_t thEd = ceil((num - pi*den) / (double)pi);
 
-    EdlibAlignConfig edlibConfig = edlibNewAlignConfig(thEd, EDLIB_MODE_NW, EDLIB_TASK_PATH, additionalEqualities, 3);
+    EdlibAlignConfig edlibConfig = edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_PATH, additionalEqualities, 3);
     EdlibAlignResult ed_result = edlibAlign(s1.c_str(), s1.size(), s2.c_str(), s2.size(), edlibConfig);
-    if(ed_result.editDistance < 0) {
-        return 0;
-    }
+
     uint64_t matches = 0;
     for(int64_t i = 0; i < ed_result.alignmentLength; i++) {
         if(ed_result.alignment[i] == EDLIB_EDOP_MATCH) {
