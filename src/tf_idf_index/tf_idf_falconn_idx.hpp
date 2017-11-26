@@ -161,9 +161,9 @@ namespace tf_idf_falconn_index {
                 std::cerr << "Selecion Removal size not equal to dataset size. exiting.." << std::endl;
                 exit(1);
             }
-            for(int32_t i = 0, j = 0; i < (int32_t)selection.size(); i++) {
+            for(int32_t i = 0, j = 0; i < (int32_t)selectionForRemoval.size(); i++) {
                 if(selectionForRemoval(i)) {
-                    dataset.erase(j);
+                    dataset.erase(dataset.begin() + j);
                 }
                 else {
                     j++;
