@@ -151,6 +151,11 @@ namespace tf_idf_falconn_index {
             query_object = table->construct_query_object(num_probes);
         }
 
+        void reconstruct_table_by_offset_data(int32_t offset) {
+            dataset.erase(dataset.begin(), dataset.begin() + offset);
+            construct_table();
+        }
+
         unique_ptr<falconn::LSHNearestNeighborQuery<point_type>> createQueryObject(){
             return table->construct_query_object(num_probes);
         }
