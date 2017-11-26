@@ -163,7 +163,7 @@ uint64_t fastPercentIdentity(string s1, string s2, uint64_t percentIdentityThres
     uint64_t s1_size = s1.size(), s2_size = s2.size();
     double den = (s1_size > s2_size) ? s1_size : s2_size;
     double num = ((s1_size > s2_size)) ? s2_size : s1_size;
-    double pi = (percentIdentityThreshold * 1.0)/100.0;
+    //double pi = (percentIdentityThreshold * 1.0)/100.0;
     if((num/den) * 100 < percentIdentityThreshold) {
         return 0;
     }
