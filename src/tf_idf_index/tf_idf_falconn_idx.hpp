@@ -156,13 +156,13 @@ namespace tf_idf_falconn_index {
             construct_table();
         }
 
-        void reconstruct_table_by_removing_data(vector<bool> selectionForRemoval) {
+        void reconstruct_table_by_removing_data(vector<bool>& selectionForRemoval) {
             if(selectionForRemoval.size() != dataset.size()) {
                 std::cerr << "Selecion Removal size not equal to dataset size. exiting.." << std::endl;
                 exit(1);
             }
             for(int32_t i = 0, j = 0; i < (int32_t)selectionForRemoval.size(); i++) {
-                if(selectionForRemoval(i)) {
+                if(selectionForRemoval[i]) {
                     dataset.erase(dataset.begin() + j);
                 }
                 else {
