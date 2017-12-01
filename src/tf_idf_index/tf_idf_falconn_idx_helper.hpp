@@ -72,7 +72,9 @@ uint8_t getAlphabetMapValue(uint8_t data_type, char c){
         case 1:
             if(p_map.find(c) == p_map.end()){
                 std::cerr << "Invalid alphabet." << c << std::endl;
-                exit(1);
+                std::cout << "Using A instead." << std::endl;
+                return 0;
+                //exit(1);
             }
             return p_map[c];
         default:
