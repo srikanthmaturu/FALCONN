@@ -47,7 +47,7 @@ std::map<char, int> p_map = {{'A',0},{'R',1},{'N',2},{'D',3},{'C',4},
                              {'S',15},{'T',16},{'W',17},{'Y',18},{'V',19},
                              {'B',2},{'Z',5}, {'x',0}, {'X',0}};
 
-EdlibEqualityPair additionalEqualities[3] = {{'B','N'},{'Z','Q'}, {'x','A'}, {'X','A'}};
+EdlibEqualityPair additionalEqualities[4] = {{'B','N'},{'Z','Q'}, {'x','A'}, {'X','A'}};
 
 uint8_t getAlphabetMapSize(uint8_t data_type){
     switch(data_type){
@@ -187,8 +187,6 @@ uint64_t fastPercentIdentity(string s1, string s2, uint64_t percentIdentityThres
 
 uint64_t getInfixPercentIdentity(string s1, string s2) {
     uint64_t s1_size = s1.size(), s2_size = s2.size();
-    double den = (s1_size > s2_size) ? s1_size : s2_size;
-    double num = ((s1_size > s2_size)) ? s2_size : s1_size;
 
     EdlibAlignConfig edlibConfig = edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, additionalEqualities, 4);
     EdlibAlignResult ed_result = edlibAlign(s1.c_str(), s1.size(), s2.c_str(), s2.size(), edlibConfig);
@@ -200,6 +198,20 @@ uint64_t getInfixPercentIdentity(string s1, string s2) {
         }
     }
     auto p =  round((matches * 100.0)/(double)ed_result.alignmentLength);
+    edlibFreeAlignResult(ed_result);
+    return p;
+}
+
+pair<uint64_t, uint64_t> getSequencesInfixComparison(string s1, string s2){
+    EdlibAlignConfig edlibConfig = edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, additionalEqualities, 4);
+    EdlibAlignResult ed_result = edlibAlign(s1.c_str(), s1.size(), s2.c_str(), s2.size(), edlibConfig);
+    uint64_t matches = 0;
+    for(int64_t i = 0; i < ed_result.alignmentLength; i++) {
+        if(ed_result.alignment[i] == EDLIB_EDOP_MATCH) {
+            matches++;
+        }
+    }
+    auto p =  make_pair((uint64_t)matches, (uint64_t)ed_result.alignmentLength);
     edlibFreeAlignResult(ed_result);
     return p;
 }
